@@ -27,6 +27,20 @@ def validate_steps(auth_token):
 
     r = requests.post("https://backend.prod.weward.fr/api/v1.0/validate_steps", headers=headers, json=payload)
     print(r.text, r.status_code)
+    return r.text, r.status_code
+    
+
+def get_profile(auth_token):
+    headers = {
+        "Authorization" : auth_token
+    }
+
+    r = requests.get("https://backend.prod.weward.fr/api/v1.0/customer/get_profile", headers=headers)
+    print(r.text, r.status_code)
+    if r.status_code == 200:
+        json = r.json()
+        json["Auth_token"] = auth_token
+    return r.json, r.status_code
 
 def get_auth_tokens():
     with open('./tokens.txt', 'r') as f:
@@ -37,4 +51,5 @@ def get_auth_tokens():
 
 tokens = get_auth_tokens()
 for token in tokens:
-    validate_steps(token)
+    # validate_steps(token)
+    get_profile(token)
