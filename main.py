@@ -1,5 +1,8 @@
 import requests
 import random
+from flask import Flask, render_template
+
+app = Flask(__name__)
 
 def validate_steps(auth_token):
     random_step = random.randint(0, 200)
@@ -39,8 +42,8 @@ def get_profile(auth_token):
     print(r.text, r.status_code)
     if r.status_code == 200:
         json = r.json()
-        json["Auth_token"] = auth_token
-    return r.json, r.status_code
+        json["Auth_token"] = auth_token[4:] + '*' * 39 
+    return r.json(), r.status_code
 
 def get_auth_tokens():
     with open('./tokens.txt', 'r') as f:
@@ -49,7 +52,16 @@ def get_auth_tokens():
     tokens = [i for i in tokens if i != '']
     return tokens
 
+@app.route('/')
+def main():
+    return render_template('index.html', infos=infos)
+
+@app.route('/debug')
+def debug():
+    return 'This is a debug page :)'
+
+infos = []
 tokens = get_auth_tokens()
 for token in tokens:
     # validate_steps(token)
-    get_profile(token)
+    infos.append(get_profile(token)[0])

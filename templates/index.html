@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename= 'css/style.css') }}">
+    <title>IWard</title>
+</head>
+<body>
+   <h1>Welcome to IWard</h1>
+   <hr>
+
+   {% for info in infos %}
+    <h2>{{ info['username'] }}</h2>
+    <p>Current balance : {{ info['balance']}}</p>
+    <p>Wards earned today : {{ info['today_balance']}}</p>
+    <p>Banned : {{ info['banned_cheater'] }}</p>
+    <br>
+   {% endfor %}
+
+</body>
+</html>
