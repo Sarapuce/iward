@@ -10,11 +10,19 @@
    <hr>
 
    {% for info in infos %}
-    <h2>{{ info['username'] }}</h2>
-    <p>Current balance : {{ info['balance']}}</p>
-    <p>Wards earned today : {{ info['today_balance']}}</p>
-    <p>Validated steps : {{ info['validated_steps'] }}</p>
-    <p>Banned : {{ info['banned_cheater'] }}</p>
+    <h2>{{ info }}</h2>
+    <p>Token : {{ infos[info]['auth_token']}}</p>
+    <p>Current balance : {{ infos[info]['balance']}}</p>
+    <p>Wards earned today : {{ infos[info]['today_balance']}}</p>
+    <p>Validated steps : {{ infos[info]['validated_steps'] }}</p>
+    <p>Banned : {{ infos[info]['banned_cheater'] }}</p>
+    <form method="post" action="/validate_step">
+        <input type="hidden" value="{{ info }}" name="username"/>
+        <button>Validate Steps</button>
+    </form>
+    <form method="post" action="/refresh_status">
+        <input type="submit" value="Refresh status" name="{{ info['username'] }}"/>
+    </form>
     <br>
    {% endfor %}
 

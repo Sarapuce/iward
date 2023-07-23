@@ -1,9 +1,8 @@
 import requests
 import random
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
-
 
 def decode(cipher):
     clear = ""
@@ -66,7 +65,7 @@ def get_profile(auth_token):
     print(r_profile.text, r_profile.status_code)
     if r_profile.status_code == 200:
         json = r_profile.json()
-        json["Auth_token"] = auth_token[:4] + '*' * 39
+        json["auth_token"] = auth_token[:4] + '*' * 39
 
     json["validated_steps"] = get_validated_steps(auth_token)
 
@@ -80,16 +79,21 @@ def get_auth_tokens():
     tokens = [i for i in tokens if i != '']
     return tokens
 
-@app.route('/')
+@app.route("/", methods=["GET"])
 def main():
-    return render_template('index.html', infos=infos)
+    return render_template("index.html", infos=infos)
 
-@app.route('/debug')
+@app.route("/debug", methods=["GET"])
 def debug():
-    return 'This is a debug page :)'
+    return "This is a debug page :)"
 
-infos = []
+@app.route("/validate_step", methods=["POST"])
+def validate_step():
+    print(request.form.get('username'))
+    return redirect(url_for('main'))
+
+infos = {}
 tokens = get_auth_tokens()
 for token in tokens:
-    # validate_steps(token)
-    infos.append(get_profile(token))
+    profile = get_profile(token)
+    infos[profile["username"]] = profile
