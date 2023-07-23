@@ -1,8 +1,12 @@
-import requests
 import random
+import logging
+import requests
+
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
 
 def decode(cipher):
     clear = ""
@@ -14,9 +18,15 @@ validate_steps_url = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn7 -(% 5$\
 step_progress_url  = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn25$1\x1e13.&3$22')
 get_profile_url    = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n&$5\x1e13.\'(-$')
 
+logging.debug("Decoded strings : ")
+logging.debug("validate_steps_url = {}".format(validate_steps_url))
+logging.debug("step_progress_url = {}".format(step_progress_url))
+logging.debug("get_profile_url = {}".format(get_profile_url))
+
 def validate_steps(auth_token):
+    logging.debug("Validate steps with auth_token = {}".format(auth_token))
     if get_validated_steps(auth_token) > 10000:
-        print("Already done")
+        logging.debug("Aborting, this profile already validated its steps")
         return
     
     random_step = random.randint(0, 200)
@@ -43,28 +53,35 @@ def validate_steps(auth_token):
     }
 
     r = requests.post(validate_steps_url, headers=headers, json=payload)
-    return r.text, r.status_code
+    logging.debug("Validate steps call ended with status code {}".format(r.status_code))
+    return r.json()
     
 def get_validated_steps(auth_token):
+    logging.debug("Get steps number with auth_token = {}".format(auth_token))
     headers = {
         "Authorization" : auth_token
     }
 
-    r_step = requests.get(step_progress_url, headers=headers)
-    return r_step.json()["valid_step"]
+    r = requests.get(step_progress_url, headers=headers)
+    logging.debug("Get steps call ended with status code {}".format(r.status_code))
+    return r.json()["valid_step"]
 
 def get_profile(auth_token):
+    logging.debug("Get profile with auth_token = {}".format(auth_token))
     headers = {
         "Authorization" : auth_token
     }
 
-    r_profile = requests.get(get_profile_url, headers=headers)
-    if r_profile.status_code == 200:
-        json = r_profile.json()
+    r = requests.get(get_profile_url, headers=headers)
+    if r.status_code == 200:
+        json = r.json()
         json["auth_token"] = auth_token
-
-    json["validated_steps"] = get_validated_steps(auth_token)
-    return json
+        json["validated_steps"] = get_validated_steps(auth_token)
+        logging.debug("Request succeed")
+        return json
+    else:
+        logging.debug("Request failed with status code {} and said {}".format(r.status_code, r.text))
+        return {}
 
 def update_profile(username):
     json = get_profile(infos[username]["auth_token"])
