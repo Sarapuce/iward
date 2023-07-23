@@ -110,6 +110,12 @@ def validate_step():
     update_profile(username)
     return redirect(url_for("main"))
 
+@app.route("/refresh", methods=["POST"])
+def refresh():
+    username = request.form.get("username")
+    update_profile(username)
+    return redirect(url_for("main"))
+
 infos = {}
 tokens = get_auth_tokens()
 for token in tokens:

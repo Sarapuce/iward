@@ -20,8 +20,10 @@
         <input type="hidden" value="{{ info }}" name="username"/>
         <button>Validate Steps</button>
     </form>
-    <form method="post" action="/refresh_status">
-        <input type="submit" value="Refresh status" name="{{ info['username'] }}"/>
+    <form method="post" action="/refresh">
+        <input type="hidden" value="{{ info }}" name="username"/>
+        <button>Refresh status</button>
+    </form>
     </form>
     <br>
    {% endfor %}
