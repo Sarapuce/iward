@@ -11,20 +11,22 @@
 
    {% for info in infos %}
     <h2>{{ info }}</h2>
+    <p>Email : {{ infos[info]['email'] }}</p>
     <p>Token : {{ infos[info]['auth_token'][:4] + '******'}}</p>
     <p>Current balance : {{ infos[info]['balance']}}</p>
     <p>Wards earned today : {{ infos[info]['today_balance']}}</p>
     <p>Validated steps : {{ infos[info]['validated_steps'] }}</p>
     <p>Banned : {{ infos[info]['banned_cheater'] }}</p>
-    <form method="post" action="/validate_step">
-        <input type="hidden" value="{{ info }}" name="username"/>
-        <button>Validate Steps</button>
-    </form>
-    <form method="post" action="/refresh">
-        <input type="hidden" value="{{ info }}" name="username"/>
-        <button>Refresh status</button>
-    </form>
-    </form>
+    <div class="button-container">
+        <form method="post" action="/validate_step">
+            <input type="hidden" value="{{ info }}" name="username"/>
+            <button>Validate Steps</button>
+        </form>
+        <form method="post" action="/refresh">
+            <input type="hidden" value="{{ info }}" name="username"/>
+            <button>Refresh status</button>
+        </form>
+    </div>
     <br>
    {% endfor %}
 

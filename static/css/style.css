@@ -3,3 +3,17 @@ body {
     color: #20C20E;
     font: 1.2em Monospace;
 }
+
+button {
+    background-color: black;
+    color: #20C20E;
+    border: 2px solid #20C20E;
+    padding-right: 20px;
+    padding-left: 20px;
+    margin-right: 5px;
+    margin-left:5px;
+}
+
+.button-container {
+    display: flex;
+}

@@ -121,3 +121,4 @@ tokens = get_auth_tokens()
 for token in tokens:
     profile = get_profile(token)
     infos[profile["username"]] = profile
+print(infos)
