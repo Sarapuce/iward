@@ -11,7 +11,7 @@
 
    {% for info in infos %}
     <h2>{{ info }}</h2>
-    <p>Token : {{ infos[info]['auth_token']}}</p>
+    <p>Token : {{ infos[info]['auth_token'][:4] + '******'}}</p>
     <p>Current balance : {{ infos[info]['balance']}}</p>
     <p>Wards earned today : {{ infos[info]['today_balance']}}</p>
     <p>Validated steps : {{ infos[info]['validated_steps'] }}</p>

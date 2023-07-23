@@ -14,11 +14,9 @@ validate_steps_url = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn7 -(% 5$\
 step_progress_url  = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn25$1\x1e13.&3$22')
 get_profile_url    = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n&$5\x1e13.\'(-$')
 
-print(validate_steps_url, step_progress_url, get_profile_url)
-
 def validate_steps(auth_token):
-
     if get_validated_steps(auth_token) > 10000:
+        print("Already done")
         return
     
     random_step = random.randint(0, 200)
@@ -45,7 +43,6 @@ def validate_steps(auth_token):
     }
 
     r = requests.post(validate_steps_url, headers=headers, json=payload)
-    print(r.text, r.status_code)
     return r.text, r.status_code
     
 def get_validated_steps(auth_token):
@@ -62,15 +59,16 @@ def get_profile(auth_token):
     }
 
     r_profile = requests.get(get_profile_url, headers=headers)
-    print(r_profile.text, r_profile.status_code)
     if r_profile.status_code == 200:
         json = r_profile.json()
-        json["auth_token"] = auth_token[:4] + '*' * 39
+        json["auth_token"] = auth_token
 
     json["validated_steps"] = get_validated_steps(auth_token)
-
-    print(json)
     return json
+
+def update_profile(username):
+    json = get_profile(infos[username]["auth_token"])
+    infos[username] = json
 
 def get_auth_tokens():
     with open('./tokens.txt', 'r') as f:
@@ -78,6 +76,7 @@ def get_auth_tokens():
     tokens = data.split('\n')
     tokens = [i for i in tokens if i != '']
     return tokens
+
 
 @app.route("/", methods=["GET"])
 def main():
@@ -89,8 +88,10 @@ def debug():
 
 @app.route("/validate_step", methods=["POST"])
 def validate_step():
-    print(request.form.get('username'))
-    return redirect(url_for('main'))
+    username = request.form.get("username")
+    validate_steps(infos[username]["auth_token"])
+    update_profile(username)
+    return redirect(url_for("main"))
 
 infos = {}
 tokens = get_auth_tokens()
