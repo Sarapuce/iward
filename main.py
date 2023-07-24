@@ -54,6 +54,8 @@ def validate_steps(auth_token):
 
     r = requests.post(validate_steps_url, headers=headers, json=payload)
     logging.debug("Validate steps call ended with status code {}".format(r.status_code))
+    if r.status_code != 200:
+        logging.debug("Message from server : {}".format(r.text))
     return r.json()
     
 def get_validated_steps(auth_token):
@@ -64,6 +66,7 @@ def get_validated_steps(auth_token):
 
     r = requests.get(step_progress_url, headers=headers)
     logging.debug("Get steps call ended with status code {}".format(r.status_code))
+    logging.debug("Answer from server : {}".format(r.text))
     return r.json()["valid_step"]
 
 def get_profile(auth_token):
