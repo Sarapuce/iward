@@ -97,6 +97,13 @@ def get_auth_tokens():
     tokens = [i for i in tokens if i != '']
     return tokens
 
+def init():
+    infos = {}
+    tokens = get_auth_tokens()
+    for token in tokens:
+        profile = get_profile(token)
+        infos[profile["username"]] = profile
+    return infos
 
 @app.route("/", methods=["GET"])
 def main():
@@ -119,9 +126,4 @@ def refresh():
     update_profile(username)
     return redirect(url_for("main"))
 
-infos = {}
-tokens = get_auth_tokens()
-for token in tokens:
-    profile = get_profile(token)
-    infos[profile["username"]] = profile
-print(infos)
+infos = init()
