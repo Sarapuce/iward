@@ -8,6 +8,10 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
 
+session = requests.session()
+session.proxies = {'http':'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
+logging.debug("IP in use : {}".format(session.get("http://httpbin.org/ip").json()["origin"]))
+
 def decode(cipher):
     clear = ""
     for c in cipher:
@@ -52,7 +56,7 @@ def validate_steps(auth_token):
         "Accept-Encoding": "gzip, deflate"
     }
 
-    r = requests.post(validate_steps_url, headers=headers, json=payload)
+    r = session.post(validate_steps_url, headers=headers, json=payload)
     logging.debug("Validate steps call ended with status code {}".format(r.status_code))
     if r.status_code != 200:
         logging.debug("Message from server : {}".format(r.text))
@@ -64,7 +68,7 @@ def get_validated_steps(auth_token):
         "Authorization" : auth_token
     }
 
-    r = requests.get(step_progress_url, headers=headers)
+    r = session.get(step_progress_url, headers=headers)
     logging.debug("Get steps call ended with status code {}".format(r.status_code))
     logging.debug("Answer from server : {}".format(r.text))
     return r.json()["valid_step"]
@@ -75,7 +79,7 @@ def get_profile(auth_token):
         "Authorization" : auth_token
     }
 
-    r = requests.get(get_profile_url, headers=headers)
+    r = session.get(get_profile_url, headers=headers)
     if r.status_code == 200:
         json = r.json()
         json["auth_token"] = auth_token
