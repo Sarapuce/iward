@@ -1,5 +1,7 @@
+import time
 import random
 import logging
+import imaplib
 import requests
 
 from flask import Flask, render_template, request, redirect, url_for
@@ -10,7 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 session = requests.session()
 session.proxies = {'http':'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
-logging.debug("IP in use : {}".format(session.get("http://httpbin.org/ip").json()["origin"]))
+# logging.debug("IP in use : {}".format(session.get("http://httpbin.org/ip").json()["origin"]))
 
 def decode(cipher):
     clear = ""
@@ -18,14 +20,19 @@ def decode(cipher):
         clear += chr(c ^ 0x41)
     return clear
 
-validate_steps_url = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn7 -(% 5$\x1e25$12')
-step_progress_url  = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn25$1\x1e13.&3$22')
-get_profile_url    = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n&$5\x1e13.\'(-$')
+validate_steps_url      = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn7 -(% 5$\x1e25$12')
+step_progress_url       = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn25$1\x1e13.&3$22')
+get_profile_url         = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n&$5\x1e13.\'(-$')
+signin_with_email_url   = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n3$04$25\x1e2(&/(/\x1e6(5)\x1e$, (-')
+base_url                = decode(b')5512{nn666o6$6 3%o 11n2(&/(/\x1e6(5)\x1e$, (-')
+sender_name             = decode(b'\x16$6 3%')
 
 logging.debug("Decoded strings : ")
 logging.debug("validate_steps_url = {}".format(validate_steps_url))
 logging.debug("step_progress_url = {}".format(step_progress_url))
 logging.debug("get_profile_url = {}".format(get_profile_url))
+logging.debug("get_profile_url = {}".format(signin_with_email_url))
+logging.debug("get_profile_url = {}".format(base_url))
 
 def validate_steps(auth_token):
     logging.debug("Validate steps with auth_token = {}".format(auth_token))
@@ -108,6 +115,68 @@ def init():
         profile = get_profile(token)
         infos[profile["username"]] = profile
     return infos
+
+def get_weward_link(email, password):
+    imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
+    imap_server.login(email, password)
+    imap_server.select()
+
+    _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
+    logging.debug("Message send by {} : {}".format(sender_name, message_numbers_raw))
+    for message_number in message_numbers_raw[0].split():
+        _, msg  = imap_server.fetch(message_number, '(RFC822)')
+        content = msg[0][1].decode()
+        start   = content.index(base_url)
+        end     = content.index("\"}\r\nX-Mailgun-Template")
+    
+    imap_server.close()
+    imap_server.logout()
+    return content[start:end]
+
+def delete_all_mail(email, password):
+    imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
+    imap_server.login(email, password)
+    imap_server.select()
+    
+    typ, data = imap_server.search(None, 'ALL')
+    for num in data[0].split():
+        imap_server.store(num, '+FLAGS', '\\Deleted')
+    imap_server.expunge()
+    imap_server.close()
+    imap_server.logout()
+
+def check_if_mail(email, password):
+    imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
+    imap_server.login(email, password)
+    imap_server.select()
+
+    _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
+
+    if message_numbers_raw[0]:
+        logging.debug("Found corresponding messages : {}".format(message_numbers_raw))
+        return True
+    else:
+        return False
+
+def get_login_link(email, password):
+    delete_all_mail(email, password)
+    
+    payload = {
+        "email": email   
+        }
+    r = session.post(signin_with_email_url, json=payload)
+
+    c = 0
+    while not check_if_mail(email, password):
+        logging.debug("Checking for new messages." + "." * c)
+        time.sleep(3)
+        c += 1
+        if c > 10:
+            logging.debug("No new message during 30 secondes")
+            return False
+
+    time.sleep(1)
+    return get_weward_link(email, password)
 
 @app.route("/", methods=["GET"])
 def main():
