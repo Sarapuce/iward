@@ -6,7 +6,12 @@
     <title>IWard</title>
 </head>
 <body>
-   <h1>Welcome to IWard</h1>
+    <h1>Welcome to IWard</h1>
+    <form method="post" action="/add_account">
+        <label for="email">Email :</label><input type="email" name="email" id="email"/>
+        <label for="password">Password :</label><input type="password" name="password" id="password"/>
+        <button>Add</button>
+    </form>
    <hr>
 
    {% for info in infos %}

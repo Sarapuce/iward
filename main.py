@@ -136,6 +136,8 @@ def get_weward_link(email, password):
     return content[start:end]
 
 def delete_all_mail(email, password):
+    logging.debug("Deleting all mails")
+    
     imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
     imap_server.login(email, password)
     imap_server.select()
@@ -200,9 +202,12 @@ def get_auth_token(google_token):
     return r.json()["token"]
 
 def get_auth_token_from_mail(email, password):
-    weward_link  = get_weward_link(email, password)
+    weward_link  = get_login_link(email, password)
+    logging.debug("WeWard link : {}".format(weward_link))
     weward_token = weward_link.split('=')[1].split('&')[0]
+    logging.debug("WeWard token : {}".format(weward_token))
     google_token = get_google_jwt(weward_token)
+    logging.debug("Google token : {}".format(google_token))
     return get_auth_token(google_token)
 
 @app.route("/", methods=["GET"])
@@ -224,6 +229,17 @@ def validate_step():
 def refresh():
     username = request.form.get("username")
     update_profile(username)
+    return redirect(url_for("main"))
+
+@app.route("/add_account", methods=["POST"])
+def add_account():
+    email = request.form.get("email")
+    password = request.form.get("password")
+    auth_token = get_auth_token_from_mail(email, password)
+    with open("tokens.txt", "a") as f:
+        f.write(auth_token + "\n")
+    profile = get_profile(auth_token)
+    infos[profile["username"]] = profile
     return redirect(url_for("main"))
 
 infos = init()
