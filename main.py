@@ -24,6 +24,7 @@ validate_steps_url      = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn7 -(
 step_progress_url       = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn25$1\x1e13.&3$22')
 get_profile_url         = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n&$5\x1e13.\'(-$')
 signin_with_email_url   = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n3$04$25\x1e2(&/(/\x1e6(5)\x1e$, (-')
+signin_id_token         = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n2(&/(/\x1e6(5)\x1e(%\x1e5.*$/')
 base_url                = decode(b')5512{nn666o6$6 3%o 11n2(&/(/\x1e6(5)\x1e$, (-')
 sender_name             = decode(b'\x16$6 3%')
 
@@ -32,6 +33,7 @@ logging.debug("validate_steps_url = {}".format(validate_steps_url))
 logging.debug("step_progress_url = {}".format(step_progress_url))
 logging.debug("get_profile_url = {}".format(get_profile_url))
 logging.debug("get_profile_url = {}".format(signin_with_email_url))
+logging.debug("get_profile_url = {}".format(signin_id_token))
 logging.debug("get_profile_url = {}".format(base_url))
 
 def validate_steps(auth_token):
@@ -177,6 +179,31 @@ def get_login_link(email, password):
 
     time.sleep(1)
     return get_weward_link(email, password)
+
+def get_google_jwt(weward_token):
+    payload = {
+        "token": weward_token,
+        "returnSecureToken": True
+    }
+
+    r = session.post("https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken?key=AIzaSyBpVnvwRMvz9lP9A2cVBKIIutli4ZuCmm4", json=payload)
+    return r.json()["idToken"]
+
+def get_auth_token(google_token):
+    payload = {
+        "id_token" : google_token
+    }
+
+    r = session.post(signin_id_token, json=payload)
+    if r.status_code != 200:
+        logging.debug("Message from server : {}".format(r.text))
+    return r.json()["token"]
+
+def get_auth_token_from_mail(email, password):
+    weward_link  = get_weward_link(email, password)
+    weward_token = weward_link.split('=')[1].split('&')[0]
+    google_token = get_google_jwt(weward_token)
+    return get_auth_token(google_token)
 
 @app.route("/", methods=["GET"])
 def main():
