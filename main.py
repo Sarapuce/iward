@@ -125,6 +125,11 @@ def get_weward_link(email, password):
 
     _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
     logging.debug("Message send by {} : {}".format(sender_name, message_numbers_raw))
+    while not message_numbers_raw[0].split():
+        time.sleep(1)
+        _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
+        logging.debug("Message send by {} : {}".format(sender_name, message_numbers_raw))
+
     for message_number in message_numbers_raw[0].split():
         _, msg  = imap_server.fetch(message_number, '(RFC822)')
         content = msg[0][1].decode()
@@ -179,7 +184,7 @@ def get_login_link(email, password):
             logging.debug("No new message during 30 secondes")
             return False
 
-    time.sleep(1)
+    time.sleep(2)
     return get_weward_link(email, password)
 
 def get_google_jwt(weward_token):
@@ -188,7 +193,7 @@ def get_google_jwt(weward_token):
         "returnSecureToken": True
     }
 
-    r = session.post("https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken?key=AIzaSyBpVnvwRMvz9lP9A2cVBKIIutli4ZuCmm4", json=payload)
+    r = requests.post("https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken?key=AIzaSyBpVnvwRMvz9lP9A2cVBKIIutli4ZuCmm4", json=payload)
     return r.json()["idToken"]
 
 def get_auth_token(google_token):
@@ -209,6 +214,17 @@ def get_auth_token_from_mail(email, password):
     google_token = get_google_jwt(weward_token)
     logging.debug("Google token : {}".format(google_token))
     return get_auth_token(google_token)
+
+def remove_token(token):
+    data_removed = ""
+    with open("tokens.txt", "r") as f:
+        data = f.read().split('\n')
+    for line in data:
+        if line != token:
+            data_removed += line
+            data_removed += "\n"
+    with open("tokens.txt", "w") as f:
+        f.write(data_removed)
 
 @app.route("/", methods=["GET"])
 def main():
@@ -242,4 +258,13 @@ def add_account():
     infos[profile["username"]] = profile
     return redirect(url_for("main"))
 
+@app.route("/logout", methods=["POST"])
+def logout():
+    username = request.form.get("username")
+    token = infos[username]["auth_token"]
+    remove_token(token)
+    infos.pop(username)
+    return redirect(url_for("main"))
+
 infos = init()
+# remove_token("-jlUpTGfYZ6N5gG54aZ5ZOuOnRUQL6Yv10PEi17O2A4")

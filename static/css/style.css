@@ -17,3 +17,13 @@ button {
 .button-container {
     display: flex;
 }
+
+.logout-btn {
+    background-color: black;
+    color: red;
+    border: 2px solid red;
+    padding-right: 20px;
+    padding-left: 20px;
+    margin-right: 5px;
+    margin-left:5px;  
+}
