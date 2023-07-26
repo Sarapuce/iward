@@ -25,6 +25,7 @@ step_progress_url       = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn25$1
 get_profile_url         = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n&$5\x1e13.\'(-$')
 signin_with_email_url   = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n3$04$25\x1e2(&/(/\x1e6(5)\x1e$, (-')
 signin_id_token         = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n2(&/(/\x1e6(5)\x1e(%\x1e5.*$/')
+referal_url             = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n".,1-$5$\x1e21./2.32)(1\x1e25$1')
 base_url                = decode(b')5512{nn666o6$6 3%o 11n2(&/(/\x1e6(5)\x1e$, (-')
 sender_name             = decode(b'\x16$6 3%')
 
@@ -34,6 +35,7 @@ logging.debug("step_progress_url = {}".format(step_progress_url))
 logging.debug("get_profile_url = {}".format(get_profile_url))
 logging.debug("get_profile_url = {}".format(signin_with_email_url))
 logging.debug("get_profile_url = {}".format(signin_id_token))
+logging.debug("get_profile_url = {}".format(referal_url))
 logging.debug("get_profile_url = {}".format(base_url))
 
 def validate_steps(auth_token):
@@ -223,8 +225,26 @@ def remove_token(token):
         if line != token:
             data_removed += line
             data_removed += "\n"
+    while '\n\n' in data_removed:
+        data_removed = data_removed.replace('\n\n', '\n')
     with open("tokens.txt", "w") as f:
         f.write(data_removed)
+
+def referral_user(token, ref_code):
+    payload = {
+        "sponsorship_code" : ref_code
+    }
+
+    headers = {
+        "Authorization": token
+    }
+
+    r = session.post(referal_url, headers=headers, json=payload)
+    logging.debug("Referal attribution ended with code {}".format(r.status_code))
+    if r.status_code != 200:
+        logging.debug("Message from server : {}".format(r.text))
+    return r.json()
+
 
 @app.route("/", methods=["GET"])
 def main():
@@ -266,5 +286,12 @@ def logout():
     infos.pop(username)
     return redirect(url_for("main"))
 
+@app.route("/referral", methods=["POST"])
+def referral():
+    username = request.form.get("username")
+    code     = request.form.get("code")
+    token = infos[username]["auth_token"]
+    referral_user(token, code)
+    return redirect(url_for("main"))
+
 infos = init()
-# remove_token("-jlUpTGfYZ6N5gG54aZ5ZOuOnRUQL6Yv10PEi17O2A4")
