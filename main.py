@@ -1,3 +1,4 @@
+import os
 import time
 import random
 import logging
@@ -27,6 +28,7 @@ signin_with_email_url   = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425
 signin_id_token         = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n2(&/(/\x1e6(5)\x1e(%\x1e5.*$/')
 referal_url             = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n".,1-$5$\x1e21./2.32)(1\x1e25$1')
 base_url                = decode(b')5512{nn666o6$6 3%o 11n2(&/(/\x1e6(5)\x1e$, (-')
+host                    = decode(b'# "*$/%o13.%o6$6 3%o\'3')
 sender_name             = decode(b'\x16$6 3%')
 
 logging.debug("Decoded strings : ")
@@ -36,6 +38,7 @@ logging.debug("get_profile_url = {}".format(get_profile_url))
 logging.debug("get_profile_url = {}".format(signin_with_email_url))
 logging.debug("get_profile_url = {}".format(signin_id_token))
 logging.debug("get_profile_url = {}".format(referal_url))
+logging.debug("get_profile_url = {}".format(host))
 logging.debug("get_profile_url = {}".format(base_url))
 
 def validate_steps(auth_token):
@@ -64,7 +67,9 @@ def validate_steps(auth_token):
     headers = {
         "Authorization": auth_token,
         "Content-Type": "application/json",
-        "Accept-Encoding": "gzip, deflate"
+        "Accept-Encoding": "gzip, deflate",
+        "Host": host,
+        "User-Agent": "okhttp/4.9.1"
     }
 
     r = session.post(validate_steps_url, headers=headers, json=payload)
@@ -76,7 +81,11 @@ def validate_steps(auth_token):
 def get_validated_steps(auth_token):
     logging.debug("Get steps number with auth_token = {}".format(auth_token))
     headers = {
-        "Authorization" : auth_token
+        "Authorization": auth_token,
+        "Content-Type": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Host": host,
+        "User-Agent": "okhttp/4.9.1"
     }
 
     r = session.get(step_progress_url, headers=headers)
@@ -87,7 +96,11 @@ def get_validated_steps(auth_token):
 def get_profile(auth_token):
     logging.debug("Get profile with auth_token = {}".format(auth_token))
     headers = {
-        "Authorization" : auth_token
+        "Authorization": auth_token,
+        "Content-Type": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Host": host,
+        "User-Agent": "okhttp/4.9.1"
     }
 
     r = session.get(get_profile_url, headers=headers)
@@ -106,6 +119,11 @@ def update_profile(username):
     infos[username] = json
 
 def get_auth_tokens():
+    if not os.path.isfile("./tokens.txt"):
+        with open('./tokens.txt', 'w') as f:
+            pass
+        return []
+
     with open('./tokens.txt', 'r') as f:
         data = f.read()
     tokens = data.split('\n')
@@ -117,7 +135,8 @@ def init():
     tokens = get_auth_tokens()
     for token in tokens:
         profile = get_profile(token)
-        infos[profile["username"]] = profile
+        if profile != {}:
+            infos[profile["username"]] = profile
     return infos
 
 def get_weward_link(email, password):
@@ -125,12 +144,12 @@ def get_weward_link(email, password):
     imap_server.login(email, password)
     imap_server.select()
 
+    c = 0
     _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
-    logging.debug("Message send by {} : {}".format(sender_name, message_numbers_raw))
-    while not message_numbers_raw[0].split():
-        time.sleep(1)
+    while not message_numbers_raw[0].split() and c < 10:
+        time.sleep(3)
         _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
-        logging.debug("Message send by {} : {}".format(sender_name, message_numbers_raw))
+        logging.debug("Waiting for message." + "." * c)
 
     for message_number in message_numbers_raw[0].split():
         _, msg  = imap_server.fetch(message_number, '(RFC822)')
@@ -146,7 +165,10 @@ def delete_all_mail(email, password):
     logging.debug("Deleting all mails")
     
     imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
-    imap_server.login(email, password)
+    try:
+        imap_server.login(email, password)
+    except:
+        return False
     imap_server.select()
     
     typ, data = imap_server.search(None, 'ALL')
@@ -155,6 +177,7 @@ def delete_all_mail(email, password):
     imap_server.expunge()
     imap_server.close()
     imap_server.logout()
+    return True
 
 def check_if_mail(email, password):
     imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
@@ -170,23 +193,20 @@ def check_if_mail(email, password):
         return False
 
 def get_login_link(email, password):
-    delete_all_mail(email, password)
+    if not delete_all_mail(email, password):
+        return False
+
+    headers = {
+        "Content-Type": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Host": host,
+        "User-Agent": "okhttp/4.9.1"
+    }
     
     payload = {
         "email": email   
         }
-    r = session.post(signin_with_email_url, json=payload)
-
-    c = 0
-    while not check_if_mail(email, password):
-        logging.debug("Checking for new messages." + "." * c)
-        time.sleep(3)
-        c += 1
-        if c > 10:
-            logging.debug("No new message during 30 secondes")
-            return False
-
-    time.sleep(2)
+    r = session.post(signin_with_email_url, json=payload, headers=headers)
     return get_weward_link(email, password)
 
 def get_google_jwt(weward_token):
@@ -200,10 +220,17 @@ def get_google_jwt(weward_token):
 
 def get_auth_token(google_token):
     payload = {
-        "id_token" : google_token
+        "id_token" : google_token,
     }
 
-    r = session.post(signin_id_token, json=payload)
+    headers = {
+        "Content-Type": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Host": host,
+        "User-Agent": "okhttp/4.9.1"
+    }
+
+    r = session.post(signin_id_token, json=payload, headers=headers)
     if r.status_code != 200:
         logging.debug("Message from server : {}".format(r.text))
     return r.json()["token"]
@@ -211,6 +238,8 @@ def get_auth_token(google_token):
 def get_auth_token_from_mail(email, password):
     weward_link  = get_login_link(email, password)
     logging.debug("WeWard link : {}".format(weward_link))
+    if not weward_link:
+        return False
     weward_token = weward_link.split('=')[1].split('&')[0]
     logging.debug("WeWard token : {}".format(weward_token))
     google_token = get_google_jwt(weward_token)
@@ -236,7 +265,11 @@ def referral_user(token, ref_code):
     }
 
     headers = {
-        "Authorization": token
+        "Authorization": token,
+        "Content-Type": "application/json",
+        "Accept-Encoding": "gzip, deflate",
+        "Host": host,
+        "User-Agent": "okhttp/4.9.1"
     }
 
     r = session.post(referal_url, headers=headers, json=payload)
@@ -248,7 +281,11 @@ def referral_user(token, ref_code):
 
 @app.route("/", methods=["GET"])
 def main():
-    return render_template("index.html", infos=infos)
+    global error
+    
+    render = render_template("index.html", infos=infos, error=error)
+    error = ''
+    return render
 
 @app.route("/debug", methods=["GET"])
 def debug():
@@ -257,6 +294,8 @@ def debug():
 @app.route("/validate_step", methods=["POST"])
 def validate_step():
     username = request.form.get("username")
+    if not username:
+        return print_error("Username not found in the POST request")
     validate_steps(infos[username]["auth_token"])
     update_profile(username)
     return redirect(url_for("main"))
@@ -264,6 +303,8 @@ def validate_step():
 @app.route("/refresh", methods=["POST"])
 def refresh():
     username = request.form.get("username")
+    if not username:
+        return print_error("Username not found in the POST request")
     update_profile(username)
     return redirect(url_for("main"))
 
@@ -271,7 +312,11 @@ def refresh():
 def add_account():
     email = request.form.get("email")
     password = request.form.get("password")
+    if not email or not password:
+        return print_error("email or password not found in the POST request")
     auth_token = get_auth_token_from_mail(email, password)
+    if not auth_token:
+        return print_error("Can't generate token with email and password provided")
     with open("tokens.txt", "a") as f:
         f.write(auth_token + "\n")
     profile = get_profile(auth_token)
@@ -281,6 +326,8 @@ def add_account():
 @app.route("/logout", methods=["POST"])
 def logout():
     username = request.form.get("username")
+    if not username:
+        return print_error("Username not found in the POST request")
     token = infos[username]["auth_token"]
     remove_token(token)
     infos.pop(username)
@@ -294,4 +341,12 @@ def referral():
     referral_user(token, code)
     return redirect(url_for("main"))
 
+def print_error(error_msg):
+    global error
+
+    error = error_msg
+    return redirect(url_for("main"))
+
 infos = init()
+error = ''
+information = ''

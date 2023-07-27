@@ -13,6 +13,11 @@
         <button>Add</button>
     </form>
    <hr>
+   {% if error %}
+    <div class="alert-box">
+        Error : {{ error }}
+    </div>
+   {% endif %}
 
    {% for info in infos %}
     <h2>{{ info }}</h2>
