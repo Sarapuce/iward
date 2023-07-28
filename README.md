@@ -8,7 +8,8 @@
 - [x] Get Auth token with email and password
 - [x] Referral management through UI
 - [x] Add user-agent + Content-type
-- [ ] Handle errors
+- [x] Handle errors
+- [x] Add auth
 - [ ] Dockerize the app
 - [ ] Put cron jobs to validate each day
 - [ ] Randomize phone

@@ -5,14 +5,15 @@ import logging
 import imaplib
 import requests
 
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, make_response
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
 # logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
 
 session = requests.session()
-session.proxies = {'http':'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
+# Uncomment to use tor
+# session.proxies = {'http':'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
 # logging.debug("IP in use : {}".format(session.get("http://httpbin.org/ip").json()["origin"]))
 
 def decode(cipher):
@@ -40,6 +41,9 @@ logging.debug("get_profile_url = {}".format(signin_id_token))
 logging.debug("get_profile_url = {}".format(referal_url))
 logging.debug("get_profile_url = {}".format(host))
 logging.debug("get_profile_url = {}".format(base_url))
+
+with open(".password", "r") as f:
+    PASSWORD = f.read().strip('\n')
 
 def validate_steps(auth_token):
     logging.debug("Validate steps with auth_token = {}".format(auth_token))
@@ -150,6 +154,7 @@ def get_weward_link(email, password):
         time.sleep(3)
         _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
         logging.debug("Waiting for message." + "." * c)
+        c += 1
 
     for message_number in message_numbers_raw[0].split():
         _, msg  = imap_server.fetch(message_number, '(RFC822)')
@@ -177,6 +182,7 @@ def delete_all_mail(email, password):
     imap_server.expunge()
     imap_server.close()
     imap_server.logout()
+    logging.debug("All mails deleted")
     return True
 
 def check_if_mail(email, password):
@@ -206,6 +212,7 @@ def get_login_link(email, password):
     payload = {
         "email": email   
         }
+    logging.debug("Sending connection mail")
     r = session.post(signin_with_email_url, json=payload, headers=headers)
     return get_weward_link(email, password)
 
@@ -278,9 +285,11 @@ def referral_user(token, ref_code):
         logging.debug("Message from server : {}".format(r.text))
     return r.json()
 
-
 @app.route("/", methods=["GET"])
 def main():
+    if request.cookies.get('auth') != PASSWORD:
+        return render_template("get_cookie.html")
+    
     global error
     
     render = render_template("index.html", infos=infos, error=error)
@@ -293,6 +302,9 @@ def debug():
 
 @app.route("/validate_step", methods=["POST"])
 def validate_step():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
     username = request.form.get("username")
     if not username:
         return print_error("Username not found in the POST request")
@@ -302,6 +314,9 @@ def validate_step():
 
 @app.route("/refresh", methods=["POST"])
 def refresh():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
     username = request.form.get("username")
     if not username:
         return print_error("Username not found in the POST request")
@@ -310,6 +325,9 @@ def refresh():
 
 @app.route("/add_account", methods=["POST"])
 def add_account():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
     email = request.form.get("email")
     password = request.form.get("password")
     if not email or not password:
@@ -325,6 +343,9 @@ def add_account():
 
 @app.route("/logout", methods=["POST"])
 def logout():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
     username = request.form.get("username")
     if not username:
         return print_error("Username not found in the POST request")
@@ -335,11 +356,21 @@ def logout():
 
 @app.route("/referral", methods=["POST"])
 def referral():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
     username = request.form.get("username")
     code     = request.form.get("code")
     token = infos[username]["auth_token"]
     referral_user(token, code)
     return redirect(url_for("main"))
+
+@app.route("/auth", methods=["POST"])
+def auth():
+    password = request.form.get("password")
+    resp = redirect(url_for("main"))
+    resp.set_cookie("auth", password)
+    return resp
 
 def print_error(error_msg):
     global error

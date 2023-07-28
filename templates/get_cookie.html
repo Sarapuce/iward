@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename= 'css/style.css') }}">
+    <title>IWard</title>
+</head>
+<body>
+    <form method="post" action="/auth">
+        <label for="password">Password :</label><input type="text" name="password" id="password"/>
+        <button>></button>
+    </form>
+</body>
