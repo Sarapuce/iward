@@ -4,8 +4,10 @@ import random
 import logging
 import imaplib
 import requests
+import schedule
 
-from flask import Flask, render_template, request, redirect, url_for, make_response
+from threading import Thread
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -47,6 +49,27 @@ PASSWORD = os.getenv("PASSWORD")
 if not PASSWORD:
     with open(".password", "r") as f:
         PASSWORD = f.read().strip('\n')
+
+def watcher():
+    while True:
+        schedule.run_pending()
+        time.sleep(2)
+        print(schedule.get_jobs())
+
+def scheduler():
+    print("Scheduling....")
+    for username in infos:
+        token = infos[username]["auth_token"]
+        if random.randint(0, 10) == 5:
+            infos[username]["next_validation"] = "No scheduled this day"
+        else:
+            next_validation = random.randint(1080, 1380)
+            infos[username][next_validation] = "{}:{}".format(str(next_validation // 60).zfill(2), str(next_validation % 60).zfill(2))
+            schedule.every().days.at(infos[username][next_validation]).do(validate_step, token=token)
+
+def validate_steps_schedule(auth_token):
+    validate_steps(auth_token)
+    return schedule.CancelJob
 
 def validate_steps(auth_token):
     logging.debug("Validate steps with auth_token = {}".format(auth_token))
@@ -384,3 +407,8 @@ def print_error(error_msg):
 infos = init()
 error = ''
 information = ''
+
+schedule.every().days.at("00:00").do(scheduler)
+
+t = Thread(target=watcher)
+t.start()
