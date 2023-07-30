@@ -10,7 +10,7 @@
 - [x] Add user-agent + Content-type
 - [x] Handle errors
 - [x] Add auth
-- [ ] Dockerize the app
+- [x] Dockerize the app
 - [ ] Put cron jobs to validate each day
 - [ ] Randomize phone
 - [ ] Put useless headers

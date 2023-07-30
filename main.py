@@ -42,8 +42,11 @@ logging.debug("get_profile_url = {}".format(referal_url))
 logging.debug("get_profile_url = {}".format(host))
 logging.debug("get_profile_url = {}".format(base_url))
 
-with open(".password", "r") as f:
-    PASSWORD = f.read().strip('\n')
+
+PASSWORD = os.getenv("PASSWORD")
+if not PASSWORD:
+    with open(".password", "r") as f:
+        PASSWORD = f.read().strip('\n')
 
 def validate_steps(auth_token):
     logging.debug("Validate steps with auth_token = {}".format(auth_token))
