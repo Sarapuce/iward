@@ -26,7 +26,8 @@
     <p>Current balance : {{ infos[info]['balance'] }}</p>
     <p>Wards earned today : {{ infos[info]['today_balance'] }}</p>
     <p>Validated steps : {{ infos[info]['validated_steps'] }}</p>
-    <p>Referal : {{ infos[info]['sponsorship_code'] }}</p>
+    <p>Referral : {{ infos[info]['sponsorship_code'] }}</p>
+    <p>Validation planned : {{ infos[info]['next_validation'] }}</p>
     <p>Banned : {{ infos[info]['banned_cheater'] }}</p>
     <div class="button-container">
         <form method="post" action="/validate_step">

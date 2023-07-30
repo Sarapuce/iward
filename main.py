@@ -77,10 +77,10 @@ def validate_steps(auth_token):
         logging.debug("Aborting, this profile already validated its steps")
         return
     
-    random_step = random.randint(0, 200)
+    random_step = random.randint(0, 2000)
     random_device = random.randint(0, 1000)
     payload = {
-        "amount" : 20000 + random_step,
+        "amount" : 19700 + random_step,
         "steps_needing_validation" : None,
         "device_id" : str(random_device),
         "device_manufacturer" : "Google",
@@ -165,8 +165,10 @@ def init():
     tokens = get_auth_tokens()
     for token in tokens:
         profile = get_profile(token)
+        profile["next_validation"] = "No scheduled this day"
         if profile != {}:
             infos[profile["username"]] = profile
+
     return infos
 
 def get_weward_link(email, password):
