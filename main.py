@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import uuid
 import random
 import logging
 import imaplib
@@ -54,9 +55,63 @@ logging.debug("get_profile_url = {}".format(base_url))
 
 
 PASSWORD = os.getenv("PASSWORD")
+SALT1    = os.getenv("SALT1")
+SALT2    = os.getenv("SALT2")
+SALT3    = os.getenv("SALT3")
+SALT4    = os.getenv("SALT4")
+
 if not PASSWORD:
     with open(".password", "r") as f:
         PASSWORD = f.read().strip('\n')
+
+if not SALT1:
+    SALT1 = uuid.uuid4()
+
+if not SALT2:
+    SALT2 = uuid.uuid4()
+
+if not SALT3:
+    SALT3 = uuid.uuid4()
+
+if not SALT4:
+    SALT4 = uuid.uuid4()
+
+def auth_token2email(auth_token):
+    try:
+        for username in infos:
+            if infos[username]["auth_token"] == auth_token:
+                return infos[username]['email']
+    except:
+        return str(uuid.UUID(hashlib.md5("{}{}".format(SALT4, auth_token).encode()).hexdigest()))
+
+def create_header(seed, auth_token = False):
+    
+    if auth_token:
+        email = auth_token2email(seed)
+    else:
+        email = seed
+
+    device_id = hashlib.md5("{}{}".format(SALT1, email).encode()).hexdigest()[:16]
+    ts = str(int(time.time() * 1000))
+    ad_id = uuid.UUID(hashlib.md5("{}{}".format(SALT2, email).encode()).hexdigest())
+    track_id = hashlib.sha256("{}{}".format(SALT3, email).encode()).hexdigest()
+
+    return { 
+        "Map": "[object Object]",
+        "Ww_app_version": "7.5.4",
+        "Ww_os": "android",
+        "Ww_os_version": "29",
+        "Ww_build_version": "242075",
+        "Ww_codepush_version": "v346",
+        "Ww-Unique-Device-Id": device_id,
+        "Ww_device_ts": ts,
+        "Ww_device_timezone": "Europe/Paris",
+        "Ww_device_country": "FR",
+        "Ww_user_language": "fr-FR",
+        "Ww_user_advertising_id": str(ad_id),
+        "Ww_track": track_id
+    }
+
 
 def watcher():
     today = -1
@@ -66,10 +121,10 @@ def watcher():
             today = now.day
             new_day()
         for username in infos:
-            if infos.get("next_validation"):
-                next_validation = infos["next_validation"].split(":")
+            if infos[username].get("next_validation"):
+                next_validation = [int(i) for i in infos[username]["next_validation"].split(":")]
                 if (next_validation[0] == now.hour and next_validation[1] <= now.minute) or next_validation[0] < now.hour:
-                    infos["next_validation"] = False
+                    infos[username]["next_validation"] = False
                     validate_steps(infos[username]["auth_token"])
 
         time.sleep(2)
@@ -90,6 +145,7 @@ def new_day():
 
 
 def validate_steps(auth_token):
+    logging.debug("Validate steps for {}".format(auth_token2email(auth_token)))
     if get_validated_steps(auth_token) > 10000:
         logging.debug("Aborting, this profile already validated its steps")
         return
@@ -101,9 +157,6 @@ def validate_steps(auth_token):
     
     random.seed(sum(ord(c) for c in auth_token[:3]))
     random_device = devices[random.randint(0, len(devices))]
-    print(random_device["model"])
-    print(md5_hash)
-    print(random_step)
     payload = {
         "amount" : 19700 + random_step,
         "steps_needing_validation" : None,
@@ -127,6 +180,8 @@ def validate_steps(auth_token):
         "User-Agent": "okhttp/4.9.1"
     }
 
+    headers = {**headers, **create_header(auth_token, True)}
+
     r = session.post(validate_steps_url, headers=headers, json=payload)
     logging.debug("Validate steps call ended with status code {}".format(r.status_code))
     if r.status_code != 200:
@@ -134,7 +189,7 @@ def validate_steps(auth_token):
     return r.json()
     
 def get_validated_steps(auth_token):
-    logging.debug("Get steps number with auth_token = {}".format(auth_token))
+    logging.debug("Get steps number for {}".format(auth_token2email(auth_token)))
     headers = {
         "Authorization": auth_token,
         "Content-Type": "application/json",
@@ -142,6 +197,8 @@ def get_validated_steps(auth_token):
         "Host": host,
         "User-Agent": "okhttp/4.9.1"
     }
+
+    headers = {**headers, **create_header(auth_token, True)}
 
     r = session.get(step_progress_url, headers=headers)
     logging.debug("Get steps call ended with status code {}".format(r.status_code))
@@ -149,7 +206,7 @@ def get_validated_steps(auth_token):
     return r.json()["valid_step"]
 
 def get_profile(auth_token):
-    logging.debug("Get profile with auth_token = {}".format(auth_token))
+    logging.debug("Get profile for {}".format(auth_token2email(auth_token)))
     headers = {
         "Authorization": auth_token,
         "Content-Type": "application/json",
@@ -157,6 +214,8 @@ def get_profile(auth_token):
         "Host": host,
         "User-Agent": "okhttp/4.9.1"
     }
+
+    headers = {**headers, **create_header(auth_token, True)}
 
     r = session.get(get_profile_url, headers=headers)
     if r.status_code == 200:
@@ -269,6 +328,10 @@ def get_login_link(email, password):
         "email": email   
         }
     logging.debug("Sending connection mail")
+
+    headers = {**headers, **create_header(email)}
+    headers.pop("Map")
+
     r = session.post(signin_with_email_url, json=payload, headers=headers)
     return get_weward_link(email, password)
 
@@ -281,7 +344,7 @@ def get_google_jwt(weward_token):
     r = requests.post("https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken?key=AIzaSyBpVnvwRMvz9lP9A2cVBKIIutli4ZuCmm4", json=payload)
     return r.json()["idToken"]
 
-def get_auth_token(google_token):
+def get_auth_token(google_token, email):
     payload = {
         "id_token" : google_token,
     }
@@ -292,6 +355,9 @@ def get_auth_token(google_token):
         "Host": host,
         "User-Agent": "okhttp/4.9.1"
     }
+
+    headers = {**headers, **create_header(email, False)}
+    headers.pop("Map")
 
     r = session.post(signin_id_token, json=payload, headers=headers)
     if r.status_code != 200:
@@ -307,7 +373,7 @@ def get_auth_token_from_mail(email, password):
     logging.debug("WeWard token : {}".format(weward_token))
     google_token = get_google_jwt(weward_token)
     logging.debug("Google token : {}".format(google_token))
-    return get_auth_token(google_token)
+    return get_auth_token(google_token, email)
 
 def remove_token(token):
     data_removed = ""
@@ -322,18 +388,20 @@ def remove_token(token):
     with open("tokens.txt", "w") as f:
         f.write(data_removed)
 
-def referral_user(token, ref_code):
+def referral_user(auth_token, ref_code):
     payload = {
         "sponsorship_code" : ref_code
     }
 
     headers = {
-        "Authorization": token,
+        "Authorization": auth_token,
         "Content-Type": "application/json",
         "Accept-Encoding": "gzip, deflate",
         "Host": host,
         "User-Agent": "okhttp/4.9.1"
     }
+
+    headers = {**headers, **create_header(auth_token, True)}
 
     r = session.post(referal_url, headers=headers, json=payload)
     logging.debug("Referal attribution ended with code {}".format(r.status_code))

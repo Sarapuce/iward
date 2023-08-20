@@ -14,6 +14,7 @@
 - [x] Put cron jobs to validate each day
 - [x] Add tools for validate and refresh every profiles
 - [x] Randomize phone
-- [ ] Put useless headers
+- [x] Put useless headers
+- [ ] Split in multiple files
 - [ ] Solve bug which reset the today balance at initialization
 - [ ] Get campaigns
