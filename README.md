@@ -11,7 +11,8 @@
 - [x] Handle errors
 - [x] Add auth
 - [x] Dockerize the app
-- [ ] Put cron jobs to validate each day
+- [x] Put cron jobs to validate each day
+- [x] Add tools for validate and refresh every profiles
 - [ ] Randomize phone
 - [ ] Put useless headers
 - [ ] Get campaigns

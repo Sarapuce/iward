@@ -19,6 +19,16 @@
     </div>
    {% endif %}
 
+    <div class="button-container">
+        <form method="post" action="/validate_all">
+            <button>Validate all</button>
+        </form>
+        <form method="post" action="/refresh_all">
+            <button>Refresh all</button>
+        </form>
+    </div>
+    Total ward : {{ total_wards }} ≈ {{ total_euros }} €
+
    {% for info in infos %}
     <h2>{{ info }}</h2>
     <p>Email : {{ infos[info]['email'] }}</p>

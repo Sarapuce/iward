@@ -33,6 +33,9 @@ referal_url             = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425
 base_url                = decode(b')5512{nn666o6$6 3%o 11n2(&/(/\x1e6(5)\x1e$, (-')
 host                    = decode(b'# "*$/%o13.%o6$6 3%o\'3')
 sender_name             = decode(b'\x16$6 3%')
+conversion_rate         = 0.0066666666
+total_wards             = 0
+total_euros             = ""
 
 logging.debug("Decoded strings : ")
 logging.debug("validate_steps_url = {}".format(validate_steps_url))
@@ -56,7 +59,7 @@ def watcher():
         now = datetime.now()
         if today != now.day:
             today = now.day
-            scheduler()
+            new_day()
         for username in infos:
             if infos.get("next_validation"):
                 next_validation = infos["next_validation"].split(":")
@@ -67,7 +70,6 @@ def watcher():
         time.sleep(2)
 
 def scheduler():
-    print("Scheduling..")
     for username in infos:
         if random.randint(0, 10) == 5:
             infos[username]["next_validation"] = False
@@ -75,8 +77,14 @@ def scheduler():
             next_validation = random.randint(1080, 1380)
             infos[username]["next_validation"] = "{}:{}".format(str(next_validation // 60).zfill(2), str(next_validation % 60).zfill(2))
 
+def new_day():
+    scheduler()
+    for username in infos:
+        infos[username]["today_balance"]   = 0
+        infos[username]["validated_steps"] = 0
+
+
 def validate_steps(auth_token):
-    logging.debug("Validate steps with auth_token = {}".format(auth_token))
     if get_validated_steps(auth_token) > 10000:
         logging.debug("Aborting, this profile already validated its steps")
         return
@@ -152,7 +160,7 @@ def update_profile(username):
     json = get_profile(infos[username]["auth_token"])
     for key in json:
         infos[username][key] = json[key]
-    print(infos[username])
+    update_total_wards()
 
 def get_auth_tokens():
     if not os.path.isfile("./tokens.txt"):
@@ -319,15 +327,25 @@ def referral_user(token, ref_code):
         logging.debug("Message from server : {}".format(r.text))
     return r.json()
 
+def update_total_wards():
+    global total_wards
+    global total_euros
+    
+    total_wards = 0
+    for username in infos:
+        total_wards += infos[username]["balance"]
+
+    total_euros = "{:.2f}".format(total_wards * conversion_rate)
+
 @app.route("/", methods=["GET"])
 def main():
-    if request.cookies.get('auth') != PASSWORD:
+    if request.cookies.get("auth") != PASSWORD:
         return render_template("get_cookie.html")
     
     global error
     
-    render = render_template("index.html", infos=infos, error=error)
-    error = ''
+    render = render_template("index.html", infos=infos, error=error, total_wards=total_wards, total_euros=total_euros)
+    error = ""
     return render
 
 @app.route("/debug", methods=["GET"])
@@ -355,6 +373,25 @@ def refresh():
     if not username:
         return print_error("Username not found in the POST request")
     update_profile(username)
+    return redirect(url_for("main"))
+
+@app.route("/refresh_all", methods=["POST"])
+def refresh_all():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
+    for username in infos:
+        update_profile(username)
+    return redirect(url_for("main"))
+
+@app.route("/validate_all", methods=["POST"])
+def validate_all():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
+    for username in infos:
+        validate_steps(infos[username]["auth_token"])
+        update_profile(username)
     return redirect(url_for("main"))
 
 @app.route("/add_account", methods=["POST"])
@@ -412,10 +449,10 @@ def print_error(error_msg):
     error = error_msg
     return redirect(url_for("main"))
 
-infos = init()
-error = ""
+infos       = init()
+error       = ""
 information = ""
-
+update_total_wards()
 
 t = Thread(target=watcher)
 t.start()
