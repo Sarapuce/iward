@@ -1,8 +1,10 @@
 import os
 import time
+import json
 import random
 import logging
 import imaplib
+import hashlib
 import requests
 
 from threading import Thread
@@ -36,6 +38,9 @@ sender_name             = decode(b'\x16$6 3%')
 conversion_rate         = 0.0066666666
 total_wards             = 0
 total_euros             = ""
+
+with open("devices.json", "r") as f:
+    devices = json.load(f)
 
 logging.debug("Decoded strings : ")
 logging.debug("validate_steps_url = {}".format(validate_steps_url))
@@ -89,18 +94,26 @@ def validate_steps(auth_token):
         logging.debug("Aborting, this profile already validated its steps")
         return
     
+    random.seed(time.time())
     random_step = random.randint(0, 2000)
-    random_device = random.randint(0, 1000)
+    device_uptime_ms = random.randint(3870000, 10000000)
+    md5_hash = hashlib.md5(auth_token.encode()).hexdigest()
+    
+    random.seed(sum(ord(c) for c in auth_token[:3]))
+    random_device = devices[random.randint(0, len(devices))]
+    print(random_device["model"])
+    print(md5_hash)
+    print(random_step)
     payload = {
         "amount" : 19700 + random_step,
         "steps_needing_validation" : None,
-        "device_id" : str(random_device),
-        "device_manufacturer" : "Google",
-        "device_model" : "Android SDK built for x86",
-        "device_product" : "sdk_gphone_x86",
+        "device_id" : md5_hash[:16],
+        "device_manufacturer" : random_device["manufacturer"],
+        "device_model" : random_device["manufacturer"],
+        "device_product" : "{}_{}".format(random_device["manufacturer"], random_device["model"].replace(" ", "_")),
         "device_system_name" : "Android",
-        "device_system_version" : "10",
-        "device_uptime_ms" : "3878841",
+        "device_system_version" : "{}.0".format(random.randint(7, 11)),
+        "device_uptime_ms" : device_uptime_ms,
         "googlefit_steps" : 0,
         "steps_source" : "GoogleFit",
         "data_sources" : [""]
@@ -179,9 +192,10 @@ def init():
     tokens = get_auth_tokens()
     for token in tokens:
         profile = get_profile(token)
-        profile["next_validation"] = False
         if profile != {}:
-            infos[profile["username"]] = profile
+            infos[profile["username"]] = {}
+            for key in profile:
+                infos[profile["username"]][key] = profile[key]
 
     return infos
 

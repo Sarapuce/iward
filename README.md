@@ -13,6 +13,7 @@
 - [x] Dockerize the app
 - [x] Put cron jobs to validate each day
 - [x] Add tools for validate and refresh every profiles
-- [ ] Randomize phone
+- [x] Randomize phone
 - [ ] Put useless headers
+- [ ] Solve bug which reset the today balance at initialization
 - [ ] Get campaigns
