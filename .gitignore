@@ -2,3 +2,4 @@ tokens.txt
 __pycache__
 mails.txt
 .password
+fly.toml
