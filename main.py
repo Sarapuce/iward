@@ -4,9 +4,9 @@ import random
 import logging
 import imaplib
 import requests
-import schedule
 
 from threading import Thread
+from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
@@ -51,25 +51,29 @@ if not PASSWORD:
         PASSWORD = f.read().strip('\n')
 
 def watcher():
+    today = -1
     while True:
-        schedule.run_pending()
+        now = datetime.now()
+        if today != now.day:
+            today = now.day
+            scheduler()
+        for username in infos:
+            if infos.get("next_validation"):
+                next_validation = infos["next_validation"].split(":")
+                if (next_validation[0] == now.hour and next_validation[1] <= now.minute) or next_validation[0] < now.hour:
+                    infos["next_validation"] = False
+                    validate_steps(infos[username]["auth_token"])
+
         time.sleep(2)
-        print(schedule.get_jobs())
 
 def scheduler():
-    print("Scheduling....")
+    print("Scheduling..")
     for username in infos:
-        token = infos[username]["auth_token"]
         if random.randint(0, 10) == 5:
-            infos[username]["next_validation"] = "No scheduled this day"
+            infos[username]["next_validation"] = False
         else:
             next_validation = random.randint(1080, 1380)
-            infos[username][next_validation] = "{}:{}".format(str(next_validation // 60).zfill(2), str(next_validation % 60).zfill(2))
-            schedule.every().days.at(infos[username][next_validation]).do(validate_step, token=token)
-
-def validate_steps_schedule(auth_token):
-    validate_steps(auth_token)
-    return schedule.CancelJob
+            infos[username]["next_validation"] = "{}:{}".format(str(next_validation // 60).zfill(2), str(next_validation % 60).zfill(2))
 
 def validate_steps(auth_token):
     logging.debug("Validate steps with auth_token = {}".format(auth_token))
@@ -146,7 +150,9 @@ def get_profile(auth_token):
 
 def update_profile(username):
     json = get_profile(infos[username]["auth_token"])
-    infos[username] = json
+    for key in json:
+        infos[username][key] = json[key]
+    print(infos[username])
 
 def get_auth_tokens():
     if not os.path.isfile("./tokens.txt"):
@@ -165,7 +171,7 @@ def init():
     tokens = get_auth_tokens()
     for token in tokens:
         profile = get_profile(token)
-        profile["next_validation"] = "No scheduled this day"
+        profile["next_validation"] = False
         if profile != {}:
             infos[profile["username"]] = profile
 
@@ -407,10 +413,9 @@ def print_error(error_msg):
     return redirect(url_for("main"))
 
 infos = init()
-error = ''
-information = ''
+error = ""
+information = ""
 
-schedule.every().days.at("00:00").do(scheduler)
 
 t = Thread(target=watcher)
 t.start()
