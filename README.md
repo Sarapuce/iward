@@ -15,6 +15,9 @@
 - [x] Add tools for validate and refresh every profiles
 - [x] Randomize phone
 - [x] Put useless headers
+- [x] Remove schedule
+- [ ] Protect routes by default
+- [~] Use a db
 - [ ] Split in multiple files
 - [ ] Solve bug which reset the today balance at initialization
 - [ ] Get campaigns

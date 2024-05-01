@@ -9,6 +9,7 @@ import hashlib
 import requests
 
 from threading import Thread
+from database import database
 from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, url_for
 
@@ -47,11 +48,11 @@ logging.debug("Decoded strings : ")
 logging.debug("validate_steps_url = {}".format(validate_steps_url))
 logging.debug("step_progress_url = {}".format(step_progress_url))
 logging.debug("get_profile_url = {}".format(get_profile_url))
-logging.debug("get_profile_url = {}".format(signin_with_email_url))
-logging.debug("get_profile_url = {}".format(signin_id_token))
-logging.debug("get_profile_url = {}".format(referal_url))
-logging.debug("get_profile_url = {}".format(host))
-logging.debug("get_profile_url = {}".format(base_url))
+logging.debug("signin_with_email_url = {}".format(signin_with_email_url))
+logging.debug("signin_id_token = {}".format(signin_id_token))
+logging.debug("referal_url = {}".format(referal_url))
+logging.debug("host = {}".format(host))
+logging.debug("base_url = {}".format(base_url))
 
 
 PASSWORD = os.getenv("PASSWORD")
@@ -275,11 +276,14 @@ def get_weward_link(email, password):
         _, msg  = imap_server.fetch(message_number, '(RFC822)')
         content = msg[0][1].decode()
         start   = content.index(base_url)
-        end     = content.index("\"}\r\nX-Mailgun-Template")
+        content = content[start:]
+        end     = content.index("\"")
+        content = content[:end]
+        print(content)
     
     imap_server.close()
     imap_server.logout()
-    return content[start:end]
+    return content
 
 def delete_all_mail(email, password):
     logging.debug("Deleting all mails")
@@ -492,6 +496,8 @@ def add_account():
         f.write(auth_token + "\n")
     profile = get_profile(auth_token)
     infos[profile["username"]] = profile
+    print(profile)
+    # db.insert()
     return redirect(url_for("main"))
 
 @app.route("/logout", methods=["POST"])
@@ -531,7 +537,9 @@ def print_error(error_msg):
     error = error_msg
     return redirect(url_for("main"))
 
+print(requests.certs.where())
 infos       = init()
+db          = database()
 error       = ""
 information = ""
 update_total_wards()
