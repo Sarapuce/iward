@@ -277,13 +277,18 @@ def get_weward_link(email, password):
         content = msg[0][1].decode()
         start   = content.index(base_url)
         content = content[start:]
-        end     = content.index("\"")
+        end     = content.index("]")
         content = content[:end]
-        print(content)
-    
+        content = content.replace('=\r\n', '')
+
     imap_server.close()
     imap_server.logout()
-    return content
+    
+    try:
+        return content
+    except UnboundLocalError:
+        logging.error("No mail found")
+        print_error("No mail received in mailbox")
 
 def delete_all_mail(email, password):
     logging.debug("Deleting all mails")
@@ -373,7 +378,7 @@ def get_auth_token_from_mail(email, password):
     logging.debug("WeWard link : {}".format(weward_link))
     if not weward_link:
         return False
-    weward_token = weward_link.split('=')[1].split('&')[0]
+    weward_token = weward_link.split('=3D')[1].split('&')[0]
     logging.debug("WeWard token : {}".format(weward_token))
     google_token = get_google_jwt(weward_token)
     logging.debug("Google token : {}".format(google_token))
@@ -488,7 +493,7 @@ def add_account():
     email = request.form.get("email")
     password = request.form.get("password")
     if not email or not password:
-        return print_error("email or password not found in the POST request")
+        return print_error("Email or password not found in the POST request")
     auth_token = get_auth_token_from_mail(email, password)
     if not auth_token:
         return print_error("Can't generate token with email and password provided")
