@@ -11,11 +11,15 @@ class database:
     pg_port     = os.environ.get("PGPORT")
     pg_password = os.environ.get("PGPASSWORD")
     pg_user     = os.environ.get("PGUSER")
+
+    if not pg_host or not pg_port or not pg_password or not pg_user:
+        logging.error("One of the following env variable is not set : PGHOST, PGPORT, PGPASSWORD PGUSER")
     
     def __init__(self, db_name="iward", table_name="users"):
         self.table_name = table_name
         self.db_name    = db_name
         try:
+            logging.debug("Trying to connect to {}:{}".format(self.pg_host, self.pg_port))
             conn = psycopg2.connect(dbname=db_name,
                                 host=self.pg_host,
                                 user=self.pg_user,
@@ -43,6 +47,9 @@ class database:
                 logging.debug("Connected to {}:{}".format(self.pg_host, self.pg_port))
             elif 'Connection refused' in str(err):
                 logging.error("Unable to connect to {}:{}".format(self.pg_host, self.pg_port))
+                exit(1)
+            else:
+                logging.error("Unable to connect to {}:{} because {}".format(self.pg_host, self.pg_port, err))
                 exit(1)
         
         conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
