@@ -461,10 +461,10 @@ def refresh():
     if request.cookies.get('auth') != PASSWORD:
         return redirect(url_for("main"))
     
-    username = request.form.get("username")
-    if not username:
-        return print_error("Username not found in the POST request")
-    update_profile(username)
+    email = request.form.get("email")
+    if not email:
+        return print_error("Email not found in the POST request")
+    users[email].update_profile()
     return redirect(url_for("main"))
 
 @app.route("/refresh_all", methods=["POST"])

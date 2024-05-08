@@ -41,7 +41,7 @@
     <p>Banned : {{ infos[info]['banned_cheater'] }}</p>
     <div class="button-container">
         <form method="post" action="/validate_step">
-            <input type="hidden" value="{{ info }}" name="username"/>
+            <input type="hidden" value="{{ infos[info]['email'] }}" name="email"/>
             <button>Validate Steps</button>
         </form>
         <form method="post" action="/refresh">

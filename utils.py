@@ -47,8 +47,8 @@ def generate_headers(user_headers, auth_token=""):
     "Ww-Unique-Device-Id": user_headers["unique_device_id"],
     "Ww_device_ts": str(int(time.time() * 1000)),
     "Ww_device_timezone": "Europe/Paris",
-    "Ww_device_country": "FR",
-    "Ww_user_language": "fr-FR",
+    "Ww_device_country": "US",
+    "Ww_user_language": "en-US",
     "Ww_user_advertising_id": user_headers["ad_id"],
     "Ww_adjust_id": user_headers["adjust_id"],
     "Push_notification_enabled": "1",
@@ -153,3 +153,9 @@ def get_login_token(email, password, user_headers):
   google_token = get_google_token(weward_token)
   logging.debug("Google token : {}".format(google_token))
   return get_auth_token(google_token, email, headers)
+
+def get_user_info(user_headers, auth_token):
+    headers = generate_headers(user_headers, auth_token)
+    r = requests.get(get_profile_url, headers=headers)
+    logging.debug("Answer from server : {}".format(r.status_code))
+    return r.json()

@@ -35,20 +35,33 @@ class user:
         "amplitude_id":     user_data["amplitude_id"]
       }
 
-
   def connect(self):
     weward_token = utils.get_login_token(self.email, self.password, self.user_headers)
     logging.debug("WeWard token for {} : {}".format(self.email, weward_token))
     if not weward_token:
         return False
+    self.token = weward_token
     self.db.update(self.email, {"token" : weward_token})
     return True
   
-  def get_profile(self):
-    infos = self.db.get(self.email)
+  def update_profile(self):
+    user_data   = self.db.get(self.email)
+    auth_token  = user_data["token"]
+    server_data = utils.get_user_info(self.user_headers, self.token)
 
-    self.token           = infos["token"]
-    self.balance         = infos["balance"]
-    self.today_balance   = infos["today_balance"]
-    self.validated_steps = infos["validated_steps"]
+    self.balance         = server_data["balance"]
+    self.today_balance   = server_data["today_balance"]
+    self.validated_steps = server_data["validated_steps"]
+    self.banned_cheater  = server_data["banned_cheater"]
+    self.id              = server_data["id"]
+    self.username        = server_data["username"]
+
+    self.db.update(self.email, {
+      "balance": self.balance,
+      "today_balance": self.today_balance,
+      "validated_steps": self.validated_steps,
+      "banned_cheater": self.banned_cheater,
+      "id": self.id,
+      "username": self.username
+    })
 
