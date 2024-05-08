@@ -8,6 +8,7 @@ import imaplib
 import hashlib
 import requests
 
+from user import user
 from threading import Thread
 from database import database
 from datetime import datetime, date
@@ -494,14 +495,13 @@ def add_account():
     password = request.form.get("password")
     if not email or not password:
         return print_error("Email or password not found in the POST request")
-    auth_token = get_auth_token_from_mail(email, password)
-    if not auth_token:
+    if email in users:
+        return print_error("User already in the list")
+    users[email] = user(email, password)
+    if not users[email].connect():
+        users.pop(email)
         return print_error("Can't generate token with email and password provided")
-    with open("tokens.txt", "a") as f:
-        f.write(auth_token + "\n")
-    profile = get_profile(auth_token)
-    infos[profile["username"]] = profile
-    print(profile)
+    # profile = get_profile(auth_token)
     # db.insert()
     return redirect(url_for("main"))
 
@@ -542,9 +542,9 @@ def print_error(error_msg):
     error = error_msg
     return redirect(url_for("main"))
 
-print(requests.certs.where())
-infos       = init()
+users       = {}
 db          = database()
+infos       = init()
 error       = ""
 information = ""
 update_total_wards()

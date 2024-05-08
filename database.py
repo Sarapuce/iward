@@ -61,11 +61,24 @@ class database:
                                     balance integer,
                                     today_balance integer,
                                     validated_steps integer,
+                                    unique_device_id varchar(100),
+                                    ad_id varchar(100),
+                                    adjust_id varchar(100),
+                                    amplitude_id varchar(100),
                                     PRIMARY KEY (email))"""))
         conn.close()
         logging.debug("Table {} ready to be used".format(self.table_name))
 
-    def create(self, email, password, token="", balance=0, today_balance=0, validated_steps=0):
+    def create(self, email, password):
+        user_data = self.get(email)
+        if user_data:
+            logging.debug("User {} already exist in the database".format(email))
+            if not user_data["adjust_id"] or not user_data["ad_id"] or not user_data["unique_device_id"] or not user_data["amplitude_id"]:
+                logging.debug("User {} already exist in the database but is not configured".format(email))
+                return True
+            else:
+                logging.debug("User {} already exist in the database and is well configured".format(email))
+                return False
         try:
             conn = psycopg2.connect(dbname=self.db_name,
                         host=self.pg_host,
@@ -76,16 +89,12 @@ class database:
 
             columns = ", ".join([
                 "email",
-                "password",
-                "token",
-                "balance",
-                "today_balance",
-                "validated_steps"
+                "password"
             ])
             placeholders = ", ".join(["%s" for _ in columns.split(",")])
             insert_query = f"INSERT INTO users ({columns}) VALUES ({placeholders});"
 
-            cursor.execute(insert_query, (email, password, token, balance, today_balance, validated_steps))
+            cursor.execute(insert_query, (email, password))
             conn.commit()
 
             logging.debug("User with email '{}' created successfully !".format(email))
@@ -99,6 +108,7 @@ class database:
         finally:
             if conn:
                 conn.close()
+        return True
 
     def update(self, email, update_data):
         try:
@@ -107,10 +117,14 @@ class database:
                                     user=self.pg_user,
                                     password=self.pg_password,
                                     port=self.pg_port)
+            conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
             cursor = conn.cursor()
-            update_columns = ", ".join(update_data.keys())
-            update_values = ",".join(["%s" for _ in update_data.values()])
-            update_query = f"UPDATE users SET {update_columns} = ({update_values}) WHERE email = %s;"
+            if len(update_data.keys()) == 1:
+                update_query = f"UPDATE users SET {list(update_data.keys())[0]} = %s WHERE email = %s;"
+            else:
+                update_columns = ", ".join(update_data.keys())
+                update_values = ",".join(["%s" for _ in update_data.values()])
+                update_query = f"UPDATE users SET ({update_columns}) = ({update_values}) WHERE email = %s;"
             cursor.execute(update_query, (*update_data.values(), email))
         except psycopg2.OperationalError as err:
             logging.error("Error connecting to PostgreSQL server:", err)
