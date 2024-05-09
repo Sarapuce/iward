@@ -29,37 +29,37 @@
     </div>
     Total ward : {{ total_wards }} ≈ {{ total_euros }} €
 
-   {% for info in infos %}
-    <h2>{{ info }}</h2>
-    <p>Email : {{ infos[info]['email'] }}</p>
-    <p>Token : {{ infos[info]['auth_token'][:4] + '******' }}</p>
-    <p>Current balance : {{ infos[info]['balance'] }}</p>
-    <p>Wards earned today : {{ infos[info]['today_balance'] }}</p>
-    <p>Validated steps : {{ infos[info]['validated_steps'] }}</p>
-    <p>Referral : {{ infos[info]['sponsorship_code'] }}</p>
-    <p>Validation planned : {{ infos[info]['next_validation'] }}</p>
-    <p>Banned : {{ infos[info]['banned_cheater'] }}</p>
-    <div class="button-container">
-        <form method="post" action="/validate_step">
-            <input type="hidden" value="{{ infos[info]['email'] }}" name="email"/>
-            <button>Validate Steps</button>
-        </form>
-        <form method="post" action="/refresh">
-            <input type="hidden" value="{{ info }}" name="username"/>
-            <button>Refresh status</button>
-        </form>
-        <form method="post" action="/logout">
-            <input type="hidden" value="{{ info }}" name="username"/>
-            <button class="logout-btn">Logout</button>
-        </form>
+    {% for user in users %}
+    <div class="user-card">
+        <div class="user-card_header">
+            <h2>{{ users[user].email }}</h2>
+            <p>Token : {{ users[user].token[:4] + '******' }}</p>
+            <p>Current balance : {{ users[user].balance }}</p>
+            <p>Wards earned today : {{ users[user].today_balance }}</p>
+            <p>Validated steps : {{ users[user].validated_steps }}</p>
+        </div>
+        <div class="button-container">
+            <form method="post" action="/validate_step">
+                <input type="hidden" value="{{ users[user].email }}" name="email"/>
+                <button>Validate Steps</button>
+            </form>
+            <form method="post" action="/refresh">
+                <input type="hidden" value="{{ users[user].email }}" name="email"/>
+                <button>Refresh status</button>
+            </form>
+            <form method="post" action="/logout">
+                <input type="hidden" value="{{ users[user].email }}" name="email"/>
+                <button class="logout-btn">Logout</button>
+            </form>
+        </div>
     </div>
-    {% if not infos[info]['has_fulfilled_sponsorship_code'] %}
+    <!-- {% if not users[user].has_fulfilled_sponsorship_code %}
     <form method="post" action="/referral">
-        <input type="hidden" value="{{ info }}" name="username"/>
+        <input type="hidden" value="{{ info }}" name="email"/>
         <label for="code-{{ info }}">Referral code :</label><input type="text" name="code" id="code-{{ info }}"/>
         <button>></button>
     </form>
-    {% endif %}
+    {% endif %} -->
     <br>
    {% endfor %}
 

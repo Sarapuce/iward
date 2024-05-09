@@ -18,7 +18,7 @@ def decode(cipher):
     return clear
 
 validate_steps_url      = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn7 -(% 5$\x1e25$12')
-step_progress_url       = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn25$1\x1e13.&3$22')
+step_progress_url       = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn/$6\x1e25$1\x1e13.&3$22')
 get_profile_url         = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n&$5\x1e13.\'(-$')
 signin_with_email_url   = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n3$04$25\x1e2(&/(/\x1e6(5)\x1e$, (-')
 signin_id_token         = decode(b')5512{nn# "*$/%o13.%o6$6 3%o\'3n 1(n7poqn"425.,$3n2(&/(/\x1e6(5)\x1e(%\x1e5.*$/')
@@ -157,5 +157,11 @@ def get_login_token(email, password, user_headers):
 def get_user_info(user_headers, auth_token):
     headers = generate_headers(user_headers, auth_token)
     r = requests.get(get_profile_url, headers=headers)
+    logging.debug("Answer from server : {}".format(r.status_code))
+    return r.json()
+
+def get_step_progress(user_headers, auth_token):
+    headers = generate_headers(user_headers, auth_token)
+    r = requests.get(step_progress_url, headers=headers)
     logging.debug("Answer from server : {}".format(r.status_code))
     return r.json()

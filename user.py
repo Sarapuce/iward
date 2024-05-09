@@ -45,13 +45,14 @@ class user:
     return True
   
   def update_profile(self):
-    user_data   = self.db.get(self.email)
-    auth_token  = user_data["token"]
-    server_data = utils.get_user_info(self.user_headers, self.token)
+    user_data         = self.db.get(self.email)
+    auth_token        = user_data["token"]
+    server_data       = utils.get_user_info(self.user_headers, self.token)
+    server_data_steps = utils.get_step_progress(self.user_headers, self.token)
 
     self.balance         = server_data["balance"]
     self.today_balance   = server_data["today_balance"]
-    self.validated_steps = server_data["validated_steps"]
+    self.validated_steps = server_data_steps["valid_step"]
     self.banned_cheater  = server_data["banned_cheater"]
     self.id              = server_data["id"]
     self.username        = server_data["username"]
@@ -65,3 +66,18 @@ class user:
       "username": self.username
     })
 
+  def get_profile(self):
+    user_data = self.db.get(self.email)
+
+    self.password         = user_data["password"]
+    self.token            = user_data["token"]
+    self.balance          = user_data["balance"]
+    self.today_balance    = user_data["today_balance"]
+    self.validated_steps  = user_data["validated_steps"]
+    self.banned_cheater   = user_data["banned_cheater"]
+    self.id               = user_data["id"]
+    self.username         = user_data["username"]
+    self.unique_device_id = user_data["unique_device_id"]
+    self.ad_id            = user_data["ad_id"] 
+    self.adjust_id        = user_data["adjust_id"]
+    self.amplitude_id     = user_data["amplitude_id"]

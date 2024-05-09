@@ -436,7 +436,9 @@ def main():
     
     global error
     
-    render = render_template("index.html", infos=infos, error=error, total_wards=total_wards, total_euros=total_euros)
+    for email in users:
+        users[email].get_profile() 
+    render = render_template("index.html", users=users, error=error, total_wards=total_wards, total_euros=total_euros)
     error = ""
     return render
 
@@ -461,6 +463,7 @@ def refresh():
     if request.cookies.get('auth') != PASSWORD:
         return redirect(url_for("main"))
     
+    print(request.form)
     email = request.form.get("email")
     if not email:
         return print_error("Email not found in the POST request")
