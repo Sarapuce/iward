@@ -1,5 +1,7 @@
 import time
+import json
 import uuid
+import random
 import hashlib
 import logging
 import imaplib
@@ -60,22 +62,21 @@ def generate_headers(user_headers, auth_token=""):
   return headers
 
 def delete_all_mail(email, password):
-  imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
-  try:
-      imap_server.login(email, password)
-  except:
-      logging.debug("Can't connect to mail server")
-      return False
-  imap_server.select()
-  
-  typ, data = imap_server.search(None, 'ALL')
-  for num in data[0].split():
-      imap_server.store(num, '+FLAGS', '\\Deleted')
-  imap_server.expunge()
-  imap_server.close()
-  imap_server.logout()
-  logging.debug("All mails deleted")
-  return True
+    try:
+        imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
+        imap_server.login(email, password)
+        imap_server.select()
+    except:
+        return False
+
+    typ, data = imap_server.search(None, 'ALL')
+    for num in data[0].split():
+        imap_server.store(num, '+FLAGS', '\\Deleted')
+    imap_server.expunge()
+    imap_server.close()
+    imap_server.logout()
+    logging.debug("All mails deleted")
+    return True
 
 def get_weward_link(email, password):
     imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
@@ -165,3 +166,17 @@ def get_step_progress(user_headers, auth_token):
     r = requests.get(step_progress_url, headers=headers)
     logging.debug("Answer from server : {}".format(r.status_code))
     return r.json()
+
+def get_random_device():
+    with open("./devices.json", "r") as f:
+        devices = json.load(f)
+    return devices[random.randint(0, len(devices))]
+
+def validate_steps(payload, user_headers, auth_token):
+    headers = generate_headers(user_headers, auth_token)
+    r = requests.post(validate_steps_url, headers=headers, json=payload)
+    logging.debug("Answer from server : {}".format(r.status_code))
+    if r.status_code != 200:
+        logging.debug("Answer from server : {}".format(r.text))
+        return False
+    return True

@@ -254,131 +254,6 @@ def init():
     for email in emails:
         users[email] = user.user(email)
 
-def get_weward_link(email, password):
-    imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
-    imap_server.login(email, password)
-    imap_server.select()
-
-    c = 0
-    _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
-    while not message_numbers_raw[0].split() and c < 10:
-        time.sleep(3)
-        _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
-        logging.debug("Waiting for message." + "." * c)
-        c += 1
-
-    for message_number in message_numbers_raw[0].split():
-        _, msg  = imap_server.fetch(message_number, '(RFC822)')
-        content = msg[0][1].decode()
-        start   = content.index(base_url)
-        content = content[start:]
-        end     = content.index("]")
-        content = content[:end]
-        content = content.replace('=\r\n', '')
-
-    imap_server.close()
-    imap_server.logout()
-    
-    try:
-        return content
-    except UnboundLocalError:
-        logging.error("No mail found")
-        print_error("No mail received in mailbox")
-
-def delete_all_mail(email, password):
-    logging.debug("Deleting all mails")
-    
-    imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
-    try:
-        imap_server.login(email, password)
-    except:
-        return False
-    imap_server.select()
-    
-    typ, data = imap_server.search(None, 'ALL')
-    for num in data[0].split():
-        imap_server.store(num, '+FLAGS', '\\Deleted')
-    imap_server.expunge()
-    imap_server.close()
-    imap_server.logout()
-    logging.debug("All mails deleted")
-    return True
-
-def check_if_mail(email, password):
-    imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
-    imap_server.login(email, password)
-    imap_server.select()
-
-    _, message_numbers_raw = imap_server.search(None, 'FROM', sender_name)
-
-    if message_numbers_raw[0]:
-        logging.debug("Found corresponding messages : {}".format(message_numbers_raw))
-        return True
-    else:
-        return False
-
-def get_login_link(email, password):
-    if not delete_all_mail(email, password):
-        return False
-
-    headers = {
-        "Content-Type": "application/json",
-        "Accept-Encoding": "gzip, deflate",
-        "Host": host,
-        "User-Agent": "okhttp/4.9.1"
-    }
-    
-    payload = {
-        "email": email   
-        }
-    logging.debug("Sending connection mail")
-
-    headers = {**headers, **create_header(email)}
-    headers.pop("Map")
-
-    r = session.post(signin_with_email_url, json=payload, headers=headers)
-    return get_weward_link(email, password)
-
-def get_google_jwt(weward_token):
-    payload = {
-        "token": weward_token,
-        "returnSecureToken": True
-    }
-
-    r = requests.post("https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken?key=AIzaSyBpVnvwRMvz9lP9A2cVBKIIutli4ZuCmm4", json=payload)
-    return r.json()["idToken"]
-
-def get_auth_token(google_token, email):
-    payload = {
-        "id_token" : google_token,
-    }
-
-    headers = {
-        "Content-Type": "application/json",
-        "Accept-Encoding": "gzip, deflate",
-        "Host": host,
-        "User-Agent": "okhttp/4.9.1"
-    }
-
-    headers = {**headers, **create_header(email, False)}
-    headers.pop("Map")
-
-    r = session.post(signin_id_token, json=payload, headers=headers)
-    if r.status_code != 200:
-        logging.debug("Message from server : {}".format(r.text))
-    return r.json()["token"]
-
-def get_auth_token_from_mail(email, password):
-    weward_link  = get_login_link(email, password)
-    logging.debug("WeWard link : {}".format(weward_link))
-    if not weward_link:
-        return False
-    weward_token = weward_link.split('=3D')[1].split('&')[0]
-    logging.debug("WeWard token : {}".format(weward_token))
-    google_token = get_google_jwt(weward_token)
-    logging.debug("Google token : {}".format(google_token))
-    return get_auth_token(google_token, email)
-
 def remove_token(token):
     data_removed = ""
     with open("tokens.txt", "r") as f:
@@ -445,11 +320,11 @@ def validate_step():
     if request.cookies.get('auth') != PASSWORD:
         return redirect(url_for("main"))
     
-    username = request.form.get("username")
-    if not username:
-        return print_error("Username not found in the POST request")
-    validate_steps(infos[username]["auth_token"])
-    update_profile(username)
+    email = request.form.get("email")
+    if not email:
+        return print_error("Email not found in the POST request")
+    users[email].validate_steps()
+    users[email].update_profile()
     return redirect(url_for("main"))
 
 @app.route("/refresh", methods=["POST"])
@@ -469,8 +344,8 @@ def refresh_all():
     if request.cookies.get('auth') != PASSWORD:
         return redirect(url_for("main"))
     
-    for username in infos:
-        update_profile(username)
+    for email in users:
+        users[email].update_profile()
     return redirect(url_for("main"))
 
 @app.route("/validate_all", methods=["POST"])
@@ -488,18 +363,20 @@ def add_account():
     if request.cookies.get('auth') != PASSWORD:
         return redirect(url_for("main"))
     
+    # Form verification
     email = request.form.get("email")
     password = request.form.get("password")
     if not email or not password:
         return print_error("Email or password not found in the POST request")
     if email in users:
         return print_error("User already in the list")
-    users[email] = user(email, password)
+    
+    # User connection
+    #TODO determine what failed during the connection
+    users[email] = user.user(email, password)
     if not users[email].connect():
         users.pop(email)
         return print_error("Can't generate token with email and password provided")
-    # profile = get_profile(auth_token)
-    # db.insert()
     return redirect(url_for("main"))
 
 @app.route("/logout", methods=["POST"])

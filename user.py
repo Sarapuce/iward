@@ -1,5 +1,6 @@
 import uuid
 import utils
+import random
 import hashlib
 import logging
 
@@ -21,20 +22,25 @@ class user:
           "adjust_id":        hashlib.md5("{}{}".format(uuid.uuid4(), password).encode()).hexdigest(),
           "amplitude_id":     str(uuid.uuid4()) + 'R'
         }
+        device = utils.get_random_device()
+        self.device_id             = hashlib.md5("{}{}".format(uuid.uuid4(), password).encode()).hexdigest()[:16]
+        self.device_manufacturer   = device["manufacturer"]
+        self.device_model          = device["model"]
+        self.device_product        = "{}_{}".format(self.device_manufacturer, self.device_model.replace(" ", "_"))
+        self.device_system_version = "{}.0".format(random.randint(10, 14))
         self.db.update(email, {
-          "unique_device_id" : self.user_headers["unique_device_id"],
-          "ad_id" : self.user_headers["ad_id"],
-          "adjust_id" : self.user_headers["adjust_id"],
-          "amplitude_id" : self.user_headers["amplitude_id"],
+          "unique_device_id":      self.user_headers["unique_device_id"],
+          "ad_id":                 self.user_headers["ad_id"],
+          "adjust_id":             self.user_headers["adjust_id"],
+          "amplitude_id":          self.user_headers["amplitude_id"],
+          "device_id":             self.device_id,
+          "device_manufacturer":   self.device_manufacturer,
+          "device_model":          self.device_model,
+          "device_product":        self.device_product,
+          "device_system_version": self.device_system_version
           })
       else:
-        user_data = self.db.get(self.email)
-        self.user_headers = {
-          "unique_device_id": user_data["unique_device_id"],
-          "ad_id":            user_data["ad_id"],
-          "adjust_id":        user_data["adjust_id"],
-          "amplitude_id":     user_data["amplitude_id"]
-        }
+        self.get_profile()
     else:
       self.get_profile()
 
@@ -72,18 +78,47 @@ class user:
   def get_profile(self):
     user_data = self.db.get(self.email)
 
-    self.password         = user_data["password"]
-    self.token            = user_data["token"]
-    self.balance          = user_data["balance"]
-    self.today_balance    = user_data["today_balance"]
-    self.validated_steps  = user_data["validated_steps"]
-    self.banned_cheater   = user_data["banned_cheater"]
-    self.id               = user_data["id"]
-    self.username         = user_data["username"]
-    self.unique_device_id = user_data["unique_device_id"]
-    self.ad_id            = user_data["ad_id"] 
-    self.adjust_id        = user_data["adjust_id"]
-    self.amplitude_id     = user_data["amplitude_id"]
+    self.password              = user_data["password"]
+    self.token                 = user_data["token"]
+    self.balance               = user_data["balance"]
+    self.today_balance         = user_data["today_balance"]
+    self.validated_steps       = user_data["validated_steps"]
+    self.banned_cheater        = user_data["banned_cheater"]
+    self.id                    = user_data["id"]
+    self.username              = user_data["username"]
+    self.unique_device_id      = user_data["unique_device_id"]
+    self.ad_id                 = user_data["ad_id"] 
+    self.adjust_id             = user_data["adjust_id"]
+    self.amplitude_id          = user_data["amplitude_id"]
+    self.device_id             = user_data["device_id"]
+    self.device_manufacturer   = user_data["device_manufacturer"]
+    self.device_model          = user_data["device_model"]
+    self.device_product        = user_data["device_product"]
+    self.device_system_version = user_data["device_system_version"]
+
+  def validate_steps(self, step_number=0):
+    logging.debug("Validating steps for {}".format(self.email))
+    self.update_profile()
+    if self.validated_steps > 10000:
+      logging.debug("Aborting, this profile already validated its steps")
+      return False
+    
+    if not step_number:
+      step_number = random.randint(0, 2000)
+    device_uptime_ms = random.randint(3870000, 10000000)
+    payload = {
+      "amount" : 19700 + step_number,
+      "steps_needing_validation" : None,
+      "device_id" : self.device_id,
+      "device_manufacturer" : self.device_manufacturer,
+      "device_model" : self.device_model,
+      "device_product" : self.device_product,
+      "device_system_name" : "Android",
+      "device_system_version" : self.device_system_version,
+      "device_uptime_ms" : device_uptime_ms,
+      "steps_source" : "GoogleFit"
+    }
+    return utils.validate_steps(payload, self.user_headers, self.token)
 
 def get_all_users():
   return user.db.get_all_emails()

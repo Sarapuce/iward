@@ -68,6 +68,11 @@ class database:
                                     ad_id varchar(100),
                                     adjust_id varchar(100),
                                     amplitude_id varchar(100),
+                                    device_id varchar(100),
+                                    device_manufacturer varchar(100),
+                                    device_model varchar(100),
+                                    device_product varchar(100),
+                                    device_system_version varchar(100),
                                     PRIMARY KEY (email))"""))
         conn.close()
         logging.debug("Table {} ready to be used".format(self.table_name))
@@ -178,7 +183,7 @@ class database:
             cursor.execute(select_query, (email,))
             user_data = cursor.fetchone()
             conn.close()
-            
+
             if user_data:
                 return dict(zip([col.name for col in cursor.description], user_data))
             else:
@@ -214,4 +219,7 @@ class database:
             if conn:
                 conn.close()
         
-        return emails
+        if emails:
+            return emails
+        else:
+            return []
