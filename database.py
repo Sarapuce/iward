@@ -177,7 +177,8 @@ class database:
             select_query = f"SELECT * FROM users WHERE email = %s;"
             cursor.execute(select_query, (email,))
             user_data = cursor.fetchone()
-
+            conn.close()
+            
             if user_data:
                 return dict(zip([col.name for col in cursor.description], user_data))
             else:
@@ -191,3 +192,26 @@ class database:
         finally:
             if conn:
                 conn.close()
+
+    def get_all_emails(self):
+        try:
+            conn = psycopg2.connect(dbname=self.db_name,
+                                    host=self.pg_host,
+                                    user=self.pg_user,
+                                    password=self.pg_password,
+                                    port=self.pg_port)
+            cursor = conn.cursor()
+            select_query = f"SELECT email FROM users;"
+            cursor.execute(select_query)
+            emails = cursor.fetchone()
+
+        except psycopg2.OperationalError as err:
+            print("Error connecting to PostgreSQL server:", err)
+            raise
+        except psycopg2.Error as err:
+            print("Error retrieving user entry:", err)
+        finally:
+            if conn:
+                conn.close()
+        
+        return emails

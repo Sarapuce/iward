@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import user
 import uuid
 import random
 import logging
@@ -8,7 +9,6 @@ import imaplib
 import hashlib
 import requests
 
-from user import user
 from threading import Thread
 from database import database
 from datetime import datetime, date
@@ -249,16 +249,10 @@ def get_auth_tokens():
     return tokens
 
 def init():
-    infos = {}
-    tokens = get_auth_tokens()
-    for token in tokens:
-        profile = get_profile(token)
-        if profile != {}:
-            infos[profile["username"]] = {}
-            for key in profile:
-                infos[profile["username"]][key] = profile[key]
-
-    return infos
+    emails = user.get_all_users()
+    logging.debug("Mails found in database : {}".format(emails))
+    for email in emails:
+        users[email] = user.user(email)
 
 def get_weward_link(email, password):
     imap_server = imaplib.IMAP4_SSL(host="imap.gmx.com")
@@ -435,7 +429,7 @@ def main():
         return render_template("get_cookie.html")
     
     global error
-    
+    logging.debug("users : {}".format(users))
     for email in users:
         users[email].get_profile() 
     render = render_template("index.html", users=users, error=error, total_wards=total_wards, total_euros=total_euros)
@@ -546,11 +540,10 @@ def print_error(error_msg):
     return redirect(url_for("main"))
 
 users       = {}
-db          = database()
 infos       = init()
 error       = ""
 information = ""
-update_total_wards()
+# update_total_wards()
 
-t = Thread(target=watcher)
-t.start()
+# t = Thread(target=watcher)
+# t.start()

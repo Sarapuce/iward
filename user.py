@@ -10,30 +10,33 @@ class user:
   db = database()
   logging.basicConfig(level=logging.DEBUG)
 
-  def __init__(self, email, password):
+  def __init__(self, email, password=""):
     self.email = email
-    self.password = password
-    if self.db.create(email, password):
-      self.user_headers = {
-        "unique_device_id": hashlib.md5("{}{}".format(uuid.uuid4(), password).encode()).hexdigest()[:16],
-        "ad_id":            str(uuid.uuid4()),
-        "adjust_id":        hashlib.md5("{}{}".format(uuid.uuid4(), password).encode()).hexdigest(),
-        "amplitude_id":     str(uuid.uuid4()) + 'R'
-      }
-      self.db.update(email, {
-        "unique_device_id" : self.user_headers["unique_device_id"],
-        "ad_id" : self.user_headers["ad_id"],
-        "adjust_id" : self.user_headers["adjust_id"],
-        "amplitude_id" : self.user_headers["amplitude_id"],
-        })
+    if password:
+      self.password = password
+      if self.db.create(email, password):
+        self.user_headers = {
+          "unique_device_id": hashlib.md5("{}{}".format(uuid.uuid4(), password).encode()).hexdigest()[:16],
+          "ad_id":            str(uuid.uuid4()),
+          "adjust_id":        hashlib.md5("{}{}".format(uuid.uuid4(), password).encode()).hexdigest(),
+          "amplitude_id":     str(uuid.uuid4()) + 'R'
+        }
+        self.db.update(email, {
+          "unique_device_id" : self.user_headers["unique_device_id"],
+          "ad_id" : self.user_headers["ad_id"],
+          "adjust_id" : self.user_headers["adjust_id"],
+          "amplitude_id" : self.user_headers["amplitude_id"],
+          })
+      else:
+        user_data = self.db.get(self.email)
+        self.user_headers = {
+          "unique_device_id": user_data["unique_device_id"],
+          "ad_id":            user_data["ad_id"],
+          "adjust_id":        user_data["adjust_id"],
+          "amplitude_id":     user_data["amplitude_id"]
+        }
     else:
-      user_data = self.db.get(self.email)
-      self.user_headers = {
-        "unique_device_id": user_data["unique_device_id"],
-        "ad_id":            user_data["ad_id"],
-        "adjust_id":        user_data["adjust_id"],
-        "amplitude_id":     user_data["amplitude_id"]
-      }
+      self.get_profile()
 
   def connect(self):
     weward_token = utils.get_login_token(self.email, self.password, self.user_headers)
@@ -81,3 +84,6 @@ class user:
     self.ad_id            = user_data["ad_id"] 
     self.adjust_id        = user_data["adjust_id"]
     self.amplitude_id     = user_data["amplitude_id"]
+
+def get_all_users():
+  return user.db.get_all_emails()
