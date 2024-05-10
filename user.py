@@ -8,7 +8,7 @@ from database import database
 
 class user:
 
-  db = database()
+  db = database("defaultdb")
   logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
 
   def __init__(self, email, password=""):

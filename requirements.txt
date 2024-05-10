@@ -1,3 +1,5 @@
 flask==3.0.3
-requests==2.13.0
+requests==2.27.1
 psycopg2-binary==2.9.9
+urllib3==1.26.17
+gunicorn==22.0.0
