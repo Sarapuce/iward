@@ -11,6 +11,12 @@ logging.basicConfig(level=logging.DEBUG)
 # session.proxies = {'http':'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
 # logging.debug("IP in use : {}".format(session.get("http://httpbin.org/ip").json()["origin"]))
 
+users           = {}
+error           = ""
+conversion_rate = 0.005
+total_wards     = 0
+total_euros     = ""
+
 try:
     PASSWORD = os.getenv("PASSWORD")
     if not PASSWORD:
@@ -184,9 +190,4 @@ def print_error(error_msg):
     error = error_msg
     return redirect(url_for("main"))
 
-users           = {}
-infos           = init()
-error           = ""
-conversion_rate = 0.0066666666
-total_wards     = 0
-total_euros     = ""
+init()

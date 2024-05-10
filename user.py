@@ -86,10 +86,12 @@ class user:
     self.banned_cheater        = user_data["banned_cheater"]
     self.id                    = user_data["id"]
     self.username              = user_data["username"]
-    self.unique_device_id      = user_data["unique_device_id"]
-    self.ad_id                 = user_data["ad_id"] 
-    self.adjust_id             = user_data["adjust_id"]
-    self.amplitude_id          = user_data["amplitude_id"]
+    self.user_headers = {
+          "unique_device_id": user_data["unique_device_id"],
+          "ad_id":            user_data["ad_id"] ,
+          "adjust_id":        user_data["adjust_id"],
+          "amplitude_id":     user_data["amplitude_id"]
+        }
     self.device_id             = user_data["device_id"]
     self.device_manufacturer   = user_data["device_manufacturer"]
     self.device_model          = user_data["device_model"]
