@@ -4,3 +4,4 @@ mails.txt
 .password
 fly.toml
 .envrc
+app.log

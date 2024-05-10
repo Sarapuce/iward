@@ -1,24 +1,16 @@
 import os
 import time
-import json
 import user
-import uuid
 import random
 import logging
-import imaplib
-import hashlib
-import requests
 
 from threading import Thread
-from database import database
 from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.DEBUG)
-# logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
 
-session = requests.session()
 # Uncomment to use tor
 # session.proxies = {'http':'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
 # logging.debug("IP in use : {}".format(session.get("http://httpbin.org/ip").json()["origin"]))
@@ -63,27 +55,6 @@ def init():
     logging.debug("Mails found in database : {}".format(emails))
     for email in emails:
         users[email] = user.user(email)
-
-def referral_user(auth_token, ref_code):
-    payload = {
-        "sponsorship_code" : ref_code
-    }
-
-    headers = {
-        "Authorization": auth_token,
-        "Content-Type": "application/json",
-        "Accept-Encoding": "gzip, deflate",
-        "Host": host,
-        "User-Agent": "okhttp/4.9.1"
-    }
-
-    headers = {**headers, **create_header(auth_token, True)}
-
-    r = session.post(referal_url, headers=headers, json=payload)
-    logging.debug("Referal attribution ended with code {}".format(r.status_code))
-    if r.status_code != 200:
-        logging.debug("Message from server : {}".format(r.text))
-    return r.json()
 
 def update_total_wards():
     global total_wards
@@ -196,6 +167,17 @@ def auth():
     resp = redirect(url_for("main"))
     resp.set_cookie("auth", password)
     return resp
+
+@app.route("/logs", methods=["GET"])
+def get_logs():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
+    with open("app.log", "r") as f:
+        logs = f.read().split('\n')
+    
+    return render_template("logs.html", logs=logs)
+
 
 def print_error(error_msg):
     global error

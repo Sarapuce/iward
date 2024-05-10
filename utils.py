@@ -11,7 +11,7 @@ import requests
 # Config #
 ##########
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
 
 def decode(cipher):
     clear = ""

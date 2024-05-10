@@ -3,21 +3,20 @@
 - [x] Print infos of accounts
 - [x] Add button to validate steps
 - [x] Add button to logout
-- [x] Use Tor
+- [ ] Use Tor
 - [x] Randomize step number
 - [x] Get Auth token with email and password
-- [x] Referral management through UI
+- [ ] Referral management through UI (Dropped since it is useless)
 - [x] Add user-agent + Content-type
 - [x] Handle errors
 - [x] Add auth
 - [x] Dockerize the app
-- [x] Put cron jobs to validate each day
-- [x] Add tools for validate and refresh every profiles
+- [ ] Put cron jobs to validate each day
 - [x] Randomize phone
 - [x] Put useless headers
-- [x] Remove schedule
 - [ ] Protect routes by default
-- [~] Use a db
-- [ ] Split in multiple files
+- [x] Use a db
+- [x] Split in multiple files
 - [ ] Solve bug which reset the today balance at initialization
-- [ ] Get campaigns
+- [ ] Get campaigns (Still relevant ?)
+- [ ] Create a python db version
