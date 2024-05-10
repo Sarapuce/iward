@@ -120,5 +120,9 @@ class user:
     }
     return utils.validate_steps(payload, self.user_headers, self.token)
 
+  def delete(self):
+    logging.debug("Deleting user {}".format(self.email))
+    self.db.delete(self.email)
+
 def get_all_users():
   return user.db.get_all_emails()
