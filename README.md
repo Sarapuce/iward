@@ -11,12 +11,12 @@
 - [x] Handle errors
 - [x] Add auth
 - [x] Dockerize the app
-- [ ] Put cron jobs to validate each day
+- [x] Put cron jobs to validate each day
 - [x] Randomize phone
 - [x] Put useless headers
 - [ ] Protect routes by default
 - [x] Use a db
 - [x] Split in multiple files
-- [ ] Solve bug which reset the today balance at initialization
 - [ ] Get campaigns (Still relevant ?)
 - [ ] Create a python db version
+- [ ] Logging in file and in console

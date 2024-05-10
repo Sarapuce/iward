@@ -5,11 +5,11 @@ import hashlib
 import logging
 
 from database import database
-
+from datetime import datetime
 class user:
 
   db = database("defaultdb")
-  logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
+  logging.basicConfig(level=logging.DEBUG)
 
   def __init__(self, email, password=""):
     self.email = email
@@ -95,6 +95,8 @@ class user:
     self.device_model          = user_data["device_model"]
     self.device_product        = user_data["device_product"]
     self.device_system_version = user_data["device_system_version"]
+    self.validated_today       = user_data["validated_today"]
+    self.next_validation       = user_data["next_validation"]
 
   def validate_steps(self, step_number=0):
     logging.debug("Validating steps for {}".format(self.email))
@@ -123,6 +125,32 @@ class user:
   def delete(self):
     logging.debug("Deleting user {}".format(self.email))
     self.db.delete(self.email)
+
+  def check_validation(self):
+    if self.validated_today:
+      return True
+    
+    now = datetime.now()
+    next_validation = [int(i) for i in self.next_validation.split(":")]
+    if (next_validation[0] == now.hour and next_validation[1] <= now.minute) or next_validation[0] < now.hour:
+      self.validated_today = True
+      self.db.update(self.email, {"validated_today": self.validated_today})
+      return self.validate_steps()
+      
+  def set_timer(self):
+    self.validated_today = False
+    if random.randint(0, 10) == 5:
+      self.validated_today = True
+    
+    validation_raw       = random.randint(1080, 1380)
+    self.next_validation = "{}:{}".format(str(validation_raw // 60).zfill(2), str(validation_raw % 60).zfill(2))
+    self.db.update(self.email, {"next_validation": self.next_validation, "validated_today": self.validated_today})
+    return True
+
+  def reset_new_day(self):
+    self.validate_steps = 0
+    self.today_balance  = 0
+    self.db.update(self.email, {"validate_steps": self.validate_steps, "today_balance": self.today_balance})
 
 def get_all_users():
   return user.db.get_all_emails()

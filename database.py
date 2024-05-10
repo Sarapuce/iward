@@ -73,6 +73,8 @@ class database:
                                     device_model varchar(100),
                                     device_product varchar(100),
                                     device_system_version varchar(100),
+                                    next_validation varchar(100),
+                                    validated_today boolean,
                                     PRIMARY KEY (email))"""))
         conn.close()
         logging.debug("Table {} ready to be used".format(self.table_name))
@@ -208,7 +210,7 @@ class database:
             cursor = conn.cursor()
             select_query = f"SELECT email FROM users;"
             cursor.execute(select_query)
-            emails = cursor.fetchone()
+            emails = cursor.fetchall()
 
         except psycopg2.OperationalError as err:
             print("Error connecting to PostgreSQL server:", err)
@@ -220,6 +222,7 @@ class database:
                 conn.close()
         
         if emails:
+            logging.debug("Emails found : {}".format(emails))
             return emails
         else:
             return []

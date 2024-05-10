@@ -1,70 +1,40 @@
 import os
-import time
 import user
-import random
 import logging
 
-from threading import Thread
-from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
-logging.basicConfig(filename='app.log', format='%(asctime)s - %(message)s', level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 # Uncomment to use tor
 # session.proxies = {'http':'socks5://127.0.0.1:9050', 'https':'socks5://127.0.0.1:9050'}
 # logging.debug("IP in use : {}".format(session.get("http://httpbin.org/ip").json()["origin"]))
 
-PASSWORD = os.getenv("PASSWORD")
-if not PASSWORD:
-    with open(".password", "r") as f:
-        PASSWORD = f.read().strip('\n')
-
-def watcher():
-    today = -1
-    while True:
-        now = datetime.now()
-        if today != now.day:
-            today = now.day
-            new_day()
-        for username in infos:
-            if infos[username].get("next_validation"):
-                next_validation = [int(i) for i in infos[username]["next_validation"].split(":")]
-                if (next_validation[0] == now.hour and next_validation[1] <= now.minute) or next_validation[0] < now.hour:
-                    infos[username]["next_validation"] = False
-                    # validate_steps(infos[username]["auth_token"])
-
-        time.sleep(2)
-
-def scheduler():
-    for username in infos:
-        if random.randint(0, 10) == 5:
-            infos[username]["next_validation"] = False
-        else:
-            next_validation = random.randint(1080, 1380)
-            infos[username]["next_validation"] = "{}:{}".format(str(next_validation // 60).zfill(2), str(next_validation % 60).zfill(2))
-
-def new_day():
-    scheduler()
-    for username in infos:
-        infos[username]["today_balance"]   = 0
-        infos[username]["validated_steps"] = 0
-
-def init():
-    emails = user.get_all_users()
-    logging.debug("Mails found in database : {}".format(emails))
-    for email in emails:
-        users[email] = user.user(email)
+try:
+    PASSWORD = os.getenv("PASSWORD")
+    if not PASSWORD:
+        with open(".password", "r") as f:
+            PASSWORD = f.read().strip('\n')
+except:
+    logging.debug("PASSWORD not set")
 
 def update_total_wards():
     global total_wards
     global total_euros
     
     total_wards = 0
-    for username in infos:
-        total_wards += infos[username]["balance"]
+    for email in users:
+        total_wards += users[email].balance
 
     total_euros = "{:.2f}".format(total_wards * conversion_rate)
+
+def init():
+    emails = [result[0] for result in user.get_all_users()]
+    logging.debug("Mails found in database : {}".format(emails))
+    for email in emails:
+        users[email] = user.user(email)
+    update_total_wards()
 
 @app.route("/", methods=["GET"])
 def main():
@@ -74,7 +44,8 @@ def main():
     global error
     logging.debug("users : {}".format(users))
     for email in users:
-        users[email].get_profile() 
+        users[email].get_profile()
+    update_total_wards()
     render = render_template("index.html", users=users, error=error, total_wards=total_wards, total_euros=total_euros)
     error = ""
     return render
@@ -168,16 +139,44 @@ def auth():
     resp.set_cookie("auth", password)
     return resp
 
-@app.route("/logs", methods=["GET"])
-def get_logs():
+@app.route("/check_validation", methods=["POST"])
+def check_validation():
     if request.cookies.get('auth') != PASSWORD:
         return redirect(url_for("main"))
     
-    with open("app.log", "r") as f:
-        logs = f.read().split('\n')
-    
-    return render_template("logs.html", logs=logs)
+    result = True
+    for email in users:
+        result = users[email].check_validation() and result
+    if result:
+        return "success"
+    else:
+        return "fail"
 
+@app.route("/set_timers", methods=["POST"])
+def set_timers():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
+    result = True
+    for email in users:
+        result = users[email].set_timer() and result
+    if result:
+        return "success"
+    else:
+        return "fail"
+
+@app.route("/reset_new_day", methods=["POST"])
+def reset_new_day():
+    if request.cookies.get('auth') != PASSWORD:
+        return redirect(url_for("main"))
+    
+    result = True
+    for email in users:
+        result = users[email].reset_new_day() and result
+    if result:
+        return "success"
+    else:
+        return "fail"
 
 def print_error(error_msg):
     global error
@@ -188,11 +187,6 @@ def print_error(error_msg):
 users           = {}
 infos           = init()
 error           = ""
-information     = ""
 conversion_rate = 0.0066666666
 total_wards     = 0
 total_euros     = ""
-# update_total_wards()
-
-# t = Thread(target=watcher)
-# t.start()

@@ -40,6 +40,7 @@
             <p>Current balance : {{ users[user].balance }}</p>
             <p>Wards earned today : {{ users[user].today_balance }}</p>
             <p>Validated steps : {{ users[user].validated_steps }}</p>
+            <p>Next validation : {{ users[user].next_validation }}</p>
         </div>
         <div class="button-container">
             <form method="post" action="/validate_step">
